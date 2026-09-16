@@ -86,6 +86,27 @@
     }
   }
   @media (min-width:1024px){ .actionbar{margin-top:4px;} }
+
+  .sigpad{border:1px dashed var(--line); border-radius:10px; height:120px; background:var(--field-bg);}
+  .sigpad canvas{width:100%; height:100%; display:block; border-radius:10px; touch-action:none;}
+  .sigtools{display:flex; gap:8px; justify-content:flex-end; margin:6px 0 12px;}
+  .sigtools button{font:inherit; font-size:12.5px; border:1px solid var(--line); background:#f3f3f4;
+    color:#333; padding:6px 12px; border-radius:6px; cursor:pointer;}
+  .rowbtn{display:flex; gap:8px; align-items:flex-end;}
+  .rowbtn select{margin-bottom:12px;}
+  .rowbtn button{font:inherit; font-size:13px; border:1px solid var(--line); background:#fff; color:#444;
+    padding:9px 12px; border-radius:8px; cursor:pointer; margin-bottom:12px; white-space:nowrap;}
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; z-index:50; padding:16px; overflow:auto;}
+  .modal.on{display:block;}
+  .modal .box{background:#fff; border-radius:14px; max-width:520px; margin:24px auto; padding:20px 18px;}
+  .modal h3{margin:0 0 12px; font-size:16px; color:var(--accent);}
+  .stafflist{border:1px solid var(--line); border-radius:10px; margin-bottom:14px; overflow:hidden;}
+  .stafflist div.row{display:flex; justify-content:space-between; align-items:center; gap:8px;
+    padding:9px 12px; border-bottom:1px solid #eee; font-size:13.5px;}
+  .stafflist div.row:last-child{border-bottom:none;}
+  .stafflist button{font:inherit; font-size:12px; border:none; background:#f0f0f0; color:#444;
+    padding:5px 10px; border-radius:6px; cursor:pointer; margin-left:6px;}
+  .modal .close{background:#eee; color:#333;}
 </style>
 </head>
 <body>
@@ -108,6 +129,26 @@
     <div class="layout">
       <!-- ============ 左：表格 ============ -->
       <div class="paneForm" id="paneForm">
+
+        <div class="card">
+          <h2>經手營業員及代理簽署（送出前必須簽）</h2>
+          <label class="fl">經手營業員</label>
+          <div class="rowbtn">
+            <select id="staff_id" onchange="pickStaff()"><option value="">— 請選擇 —</option></select>
+            <button type="button" onclick="openStaff()">管理員工</button>
+          </div>
+          <div class="grid2">
+            <div><label class="fl">簽署人的姓名或名稱及牌照號碼</label><input type="text" id="agent_signer" oninput="renderPreview()"></div>
+            <div><label class="fl">代理簽署日期</label><input type="date" id="agent_date" oninput="renderPreview()"></div>
+          </div>
+          <label class="fl">地產代理/營業員簽署</label>
+          <div class="sigpad"><canvas id="agentSig"></canvas></div>
+          <div class="sigtools">
+            <button type="button" onclick="useSavedSig()">用番員工儲存嘅簽名</button>
+            <button type="button" onclick="clearAgentSig()">清除</button>
+          </div>
+          <div class="hint">代理簽好先送link俾賣方；賣方喺簽署頁會見到代理已簽。</div>
+        </div>
 
         <div class="card">
           <h2>第 1 條　代理的委任及有效期</h2>
@@ -218,12 +259,9 @@
             <div><label class="fl">賣方的商業登記證號碼</label><input type="text" id="seller_br" oninput="renderPreview()"></div>
             <div><label class="fl">賣方電話號碼</label><input type="text" id="seller_phone" oninput="renderPreview()"></div>
             <div><label class="fl">賣方傳真號碼</label><input type="text" id="seller_fax" oninput="renderPreview()"></div>
-            <div><label class="fl">代理簽署人姓名及牌照號碼</label><input type="text" id="agent_signer" oninput="renderPreview()"></div>
           </div>
           <label class="fl">賣方地址</label>
           <input type="text" id="seller_address" oninput="renderPreview()">
-          <label class="fl">代理簽署日期</label>
-          <input type="date" id="agent_date" oninput="renderPreview()">
           <div class="hint">賣方簽署同日期會喺客人簽署嗰陣自動填入。</div>
         </div>
 
@@ -256,6 +294,27 @@
 
 </div>
 
+<div class="modal" id="staffModal">
+  <div class="box">
+    <h3>員工（營業員）資料</h3>
+    <div class="msg info" id="staffNote"></div>
+    <div class="stafflist" id="staffList"></div>
+    <label class="fl">姓名</label><input type="text" id="sf_name">
+    <div class="grid2">
+      <div><label class="fl">牌照號碼</label><input type="text" id="sf_lic" placeholder="例如 E-123456"></div>
+      <div><label class="fl">電話</label><input type="text" id="sf_phone"></div>
+    </div>
+    <label class="fl">簽名（可留白，之後即場簽）</label>
+    <div class="sigpad"><canvas id="sfSig"></canvas></div>
+    <div class="sigtools"><button type="button" onclick="sfSigPad.clear()">清除簽名</button></div>
+    <input type="hidden" id="sf_id">
+    <div style="display:flex; gap:8px;">
+      <button class="btn" type="button" onclick="saveStaff()">儲存員工</button>
+      <button class="btn close" type="button" style="background:#eee;color:#333;" onclick="closeStaff()">關閉</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="form-doc.js"></script>
 <script>
@@ -274,6 +333,135 @@
   const setVal = (id, v) => { if (v !== null && v !== undefined) document.getElementById(id).value = v; };
   const radio = n => { const el = document.querySelector(`input[name="${n}"]:checked`); return el ? el.value : null; };
   const setRadio = (n, v) => { if (!v) return; const el = document.querySelector(`input[name="${n}"][value="${v}"]`); if (el) el.checked = true; };
+
+  /* ---------- 簽名板 ---------- */
+  function makePad(id){
+    const canvas = document.getElementById(id);
+    const ctx = canvas.getContext('2d');
+    let drawing = false, last = null, dirty = false;
+    function reset(){
+      const r = canvas.getBoundingClientRect();
+      if (!r.width) return;
+      const keep = dirty ? canvas.toDataURL() : null;
+      canvas.width = r.width * devicePixelRatio;
+      canvas.height = r.height * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#16305c';
+      if (keep){ const im = new Image(); im.onload = () => ctx.drawImage(im, 0, 0, r.width, r.height); im.src = keep; }
+    }
+    function pos(e){ const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e;
+      return { x: t.clientX - r.left, y: t.clientY - r.top }; }
+    function start(e){ drawing = true; dirty = true; last = pos(e); e.preventDefault(); }
+    function move(e){ if (!drawing) return; const pt = pos(e);
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(pt.x, pt.y); ctx.stroke(); last = pt; e.preventDefault(); }
+    function end(){ if (drawing){ drawing = false; if (typeof renderPreview === 'function') renderPreview(); } }
+    canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);     canvas.addEventListener('mouseleave', end);
+    canvas.addEventListener('touchstart', start, {passive:false});
+    canvas.addEventListener('touchmove', move, {passive:false});
+    canvas.addEventListener('touchend', end);
+    window.addEventListener('resize', reset);
+    setTimeout(reset, 60);
+    return {
+      resize: reset,
+      clear(){ ctx.clearRect(0, 0, canvas.width, canvas.height); dirty = false; renderPreview(); },
+      isEmpty(){ return !dirty; },
+      dataUrl(){ return dirty ? canvas.toDataURL('image/png') : null; },
+      load(url){
+        if (!url) return;
+        const r = canvas.getBoundingClientRect();
+        const im = new Image();
+        im.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const sc = Math.min(r.width / im.width, r.height / im.height, 1);
+          ctx.drawImage(im, 0, 0, im.width * sc, im.height * sc);
+          dirty = true; renderPreview();
+        };
+        im.src = url;
+      }
+    };
+  }
+  const agentPad = makePad('agentSig');
+  const sfSigPad  = makePad('sfSig');
+  function clearAgentSig(){ agentPad.clear(); }
+
+  /* ---------- 員工 ---------- */
+  let staffRows = [];
+  async function loadStaff(keepSel){
+    const res = await HKREA.staff.list(sb);
+    staffRows = res.rows;
+    const sel = document.getElementById('staff_id');
+    const cur = keepSel || sel.value;
+    sel.innerHTML = '<option value="">— 請選擇 —</option>' +
+      staffRows.map(r => `<option value="${r.id}">${HKREA.staff.label(r)}</option>`).join('');
+    if (cur) sel.value = cur;
+    const note = document.getElementById('staffNote');
+    if (!res.remote){
+      note.textContent = '員工資料暫時存喺呢部機（Supabase 未有 staff 表或未有權限）。行咗 README 入面段 SQL 之後就會全公司共用。';
+      note.style.display = 'block';
+    } else { note.textContent = ''; note.style.display = 'none'; }
+    renderStaffList();
+  }
+  function pickStaff(){
+    const r = staffRows.find(x => String(x.id) === document.getElementById('staff_id').value);
+    if (!r) return;
+    document.getElementById('agent_signer').value = HKREA.staff.label(r);
+    if (r.signature) agentPad.load(r.signature);
+    if (!document.getElementById('agent_date').value)
+      document.getElementById('agent_date').value = new Date().toISOString().slice(0,10);
+    renderPreview();
+  }
+  function useSavedSig(){
+    const r = staffRows.find(x => String(x.id) === document.getElementById('staff_id').value);
+    if (!r || !r.signature){ alert('呢位員工未儲存簽名，可以直接喺下面簽，或者去「管理員工」入面儲存。'); return; }
+    agentPad.load(r.signature);
+  }
+  function openStaff(){
+    document.getElementById('staffModal').classList.add('on');
+    setTimeout(() => sfSigPad.resize(), 50);
+    loadStaff();
+  }
+  function closeStaff(){ document.getElementById('staffModal').classList.remove('on'); }
+  function renderStaffList(){
+    const box = document.getElementById('staffList');
+    box.innerHTML = staffRows.length
+      ? staffRows.map(r => `<div class="row"><span>${HKREA.staff.label(r)}${r.signature ? ' ✍︎' : ''}</span>
+          <span><button type="button" onclick="editStaff('${r.id}')">編輯</button>
+          <button type="button" onclick="delStaff('${r.id}')">刪除</button></span></div>`).join('')
+      : '<div class="row"><span style="color:#999;">未有員工資料</span></div>';
+  }
+  function editStaff(id){
+    const r = staffRows.find(x => String(x.id) === String(id));
+    if (!r) return;
+    document.getElementById('sf_id').value = r.id;
+    document.getElementById('sf_name').value = r.name || '';
+    document.getElementById('sf_lic').value = r.licence_no || '';
+    document.getElementById('sf_phone').value = r.phone || '';
+    sfSigPad.clear(); if (r.signature) sfSigPad.load(r.signature);
+  }
+  async function delStaff(id){
+    if (!confirm('確定刪除呢位員工？')) return;
+    await HKREA.staff.remove(sb, id);
+    await loadStaff();
+  }
+  async function saveStaff(){
+    const name = document.getElementById('sf_name').value.trim();
+    if (!name){ alert('請填員工姓名'); return; }
+    const row = {
+      id: document.getElementById('sf_id').value || null,
+      name,
+      licence_no: document.getElementById('sf_lic').value.trim(),
+      phone: document.getElementById('sf_phone').value.trim(),
+      signature: sfSigPad.dataUrl()
+    };
+    const res = await HKREA.staff.save(sb, row);
+    document.getElementById('sf_id').value = '';
+    document.getElementById('sf_name').value = '';
+    document.getElementById('sf_lic').value = '';
+    document.getElementById('sf_phone').value = '';
+    sfSigPad.clear();
+    await loadStaff(res.row ? String(res.row.id) : '');
+  }
 
   function collect(){
     return {
@@ -306,7 +494,9 @@
       seller_phone: val('seller_phone'),
       seller_fax: val('seller_fax'),
       agent_signer: val('agent_signer'),
-      agent_date: val('agent_date')
+      agent_date: val('agent_date'),
+      staff_id: val('staff_id'),
+      agent_signature: agentPad.isEmpty() ? null : agentPad.dataUrl()
     };
   }
 
@@ -386,7 +576,7 @@
         document.getElementById('errMsg').style.display = 'block';
         return;
       }
-      const fd = data.form_data || {};
+      const fd = data.form_data || {}; window.__fd = fd;
       setVal('seller_name', data.seller_name);
       setVal('property_address', data.property_address);
       setRadio('agency_type', data.agency_type);
@@ -403,10 +593,21 @@
        'seller_br','seller_address','seller_phone','seller_fax','agent_signer','agent_date']
         .forEach(k => setVal(k, fd[k]));
 
+      if (fd.staff_id) document.getElementById('staff_id').value = fd.staff_id;
+      if (fd.agent_signature) agentPad.load(fd.agent_signature);
+
       if (data.status === 'signed' && !isAdmin) applyLock(true);
+    }
+    await loadStaff();
+    if (editingSerial){
+      const fd0 = (window.__fd || {});
+      if (fd0.staff_id) document.getElementById('staff_id').value = fd0.staff_id;
+    } else {
+      document.getElementById('agent_date').value = new Date().toISOString().slice(0,10);
     }
     renderPreview();
     syncPanes();
+    if (location.hash === '#staff') openStaff();
   }
 
   async function submitListing(){
@@ -418,8 +619,12 @@
     if (!d.seller_name || !d.property_address){
       errBox.textContent = '請至少填寫賣方姓名同物業地址先可以建立記錄。';
       errBox.style.display = 'block';
-      switchTab('form');
-      return;
+      switchTab('form'); return;
+    }
+    if (!d.agent_signature){
+      errBox.textContent = '送俾賣方之前，地產代理/營業員必須先喺最上面嗰欄簽名。';
+      errBox.style.display = 'block';
+      switchTab('form'); window.scrollTo(0,0); return;
     }
 
     btn.disabled = true; btn.textContent = editingSerial ? '更新緊…' : '建立緊…';
@@ -440,7 +645,8 @@
         seller_id: d.seller_id, seller_company: d.seller_company, signer_name: d.signer_name,
         signer_title: d.signer_title, seller_br: d.seller_br, seller_address: d.seller_address,
         seller_phone: d.seller_phone, seller_fax: d.seller_fax,
-        agent_signer: d.agent_signer, agent_date: d.agent_date
+        agent_signer: d.agent_signer, agent_date: d.agent_date,
+        staff_id: d.staff_id, agent_signature: d.agent_signature
       }
     };
 

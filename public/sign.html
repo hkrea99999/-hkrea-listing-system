@@ -74,6 +74,12 @@
       <div class="pvholder" id="pvHolder"><div class="pvscale" id="pvScale"></div></div>
     </div>
 
+    <div id="viewBar" style="display:none; gap:10px; flex-wrap:wrap; margin-top:14px;">
+      <button class="submitBtn" style="width:auto; padding:11px 20px;" onclick="downloadPdf()">下載PDF</button>
+      <button class="submitBtn" style="width:auto; padding:11px 20px; background:#eee; color:#333;" onclick="window.print()">列印</button>
+      <a class="submitBtn" style="width:auto; padding:11px 20px; background:#eee; color:#333; text-decoration:none; display:inline-block;" href="dashboard.html">返回紀錄</a>
+    </div>
+
     <div class="panel">
       <h2>賣方簽署確認</h2>
       <div class="confirm-row">
@@ -88,8 +94,11 @@
   </div>
 </div>
 
-<!-- 生成PDF用嘅離屏容器（原尺寸，唔受縮放影響） -->
-<div id="pdfStage" style="position:fixed; left:-10000px; top:0; width:794px; background:#fff;"></div>
+<!-- 生成PDF用：要真係喺畫面上render，html2canvas先影到，所以用遮罩蓋住 -->
+<div id="busy" style="display:none; position:fixed; inset:0; background:#f4f4f5; z-index:9999;
+  align-items:center; justify-content:center; font-size:15px; color:#555;">生成緊PDF，請稍等…</div>
+<!-- 注意：呢個容器一定要係普通 flow（唔可以 position:absolute/fixed），否則 html2canvas 影出嚟會係白紙 -->
+<div id="pdfStage" style="display:none; width:793px; margin:0; background:#fff;"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
@@ -102,7 +111,9 @@
 
   const st = document.createElement('style'); st.textContent = HKREA.css; document.head.appendChild(st);
 
-  const token = new URLSearchParams(window.location.search).get('token');
+  const qs = new URLSearchParams(window.location.search);
+  const token = qs.get('token');
+  const viewMode = qs.get('view') === '1';
   let record = null, ctx, drawing = false, last = null, localPdfUrl = null;
 
   function show(id){
@@ -155,6 +166,14 @@
     const { data, error } = await sb.from('listings').select('*').eq('sign_token', token).single();
     if (error || !data){ show('errorState'); return; }
     record = data;
+
+    if (viewMode){
+      document.getElementById('pvScale').innerHTML = HKREA.render(toDoc(data));
+      document.querySelector('.panel').style.display = 'none';
+      document.getElementById('viewBar').style.display = 'flex';
+      show('docView'); fitPreview();
+      return;
+    }
 
     if (data.status === 'signed'){
       document.getElementById('signedSerial').textContent = data.serial_no;
@@ -224,23 +243,31 @@
   /* ---------- 生成 PDF ---------- */
   async function makePdfBlob(docData){
     const stage = document.getElementById('pdfStage');
+    const busy = document.getElementById('busy');
+    busy.style.display = 'flex';
     stage.innerHTML = HKREA.render(docData);
-    stage.querySelectorAll('.paper').forEach((p, i, arr) => {
-      p.style.boxShadow = 'none';
-      p.style.marginTop = '0';
-      if (i < arr.length - 1) p.style.pageBreakAfter = 'always';
-    });
-    await new Promise(r => setTimeout(r, 120)); // 等字體同圖render好
+    stage.style.display = 'block';
+    // 每頁固定 1122px = A4，交返 html2pdf 用高度切頁；唔好再加 page-break，否則會多咗空白頁
+    stage.querySelectorAll('.paper').forEach(p => { p.style.boxShadow = 'none'; p.style.marginTop = '0'; });
+    window.scrollTo(0, 0);
+    // 等字體、圖同 layout 完全 ready，否則會出白紙
+    if (document.fonts && document.fonts.ready) { try{ await document.fonts.ready; }catch(e){} }
+    await Promise.all(Array.from(stage.querySelectorAll('img')).map(im =>
+      im.complete ? Promise.resolve() : new Promise(r => { im.onload = im.onerror = r; })));
+    await new Promise(r => setTimeout(r, 250));
+    try{
     const blob = await html2pdf().from(stage).set({
       margin: 0,
       filename: `${docData.serial_no}.pdf`,
       image: { type: 'jpeg', quality: 0.96 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 794 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css','legacy'] }
+      pagebreak: { mode: ['legacy'] }
     }).outputPdf('blob');
-    stage.innerHTML = '';
     return blob;
+    } finally {
+      stage.innerHTML = ''; stage.style.display = 'none'; busy.style.display = 'none';
+    }
   }
 
   function offerLocalDownload(blob, serial){
@@ -305,11 +332,13 @@
       pdfUrl = await uploadPdf(pdfBlob, record.serial_no);
     }catch(e){ storageErr = e.message; }
 
+    const newFd = Object.assign({}, record.form_data || {}, { signature_img: sigData, seller_date: today });
     const upd = await sb.from('listings').update({
       status: 'signed',
       signed_at: new Date().toISOString(),
       seller_signature_url: sigUrl,
-      signed_pdf_url: pdfUrl
+      signed_pdf_url: pdfUrl,
+      form_data: newFd
     }).eq('sign_token', token);
 
     if (upd.error){
@@ -332,6 +361,19 @@
       w.textContent = '簽署已完成，但PDF上載唔到storage（' + storageErr + '）。而家可以直接下載，遲啲喺後台重新生成。';
       w.style.display = 'block';
     }
+  }
+
+  async function downloadPdf(){
+    if (record.signed_pdf_url && await urlOk(record.signed_pdf_url)){
+      window.open(record.signed_pdf_url, '_blank'); return;
+    }
+    const blob = await makePdfBlob(toDoc(record));
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = record.serial_no + '.pdf'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    try{ const up = await uploadPdf(blob, record.serial_no);
+         await sb.from('listings').update({ signed_pdf_url: up }).eq('sign_token', token); }catch(e){}
   }
 
   /* ---------- 已簽署但PDF 404：重新生成 ---------- */

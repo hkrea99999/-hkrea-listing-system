@@ -84,7 +84,8 @@ window.HKREA = (function () {
   const CSS = `
   .paper, .paper *{ box-sizing:border-box; }
   .paper{
-    width:794px; min-height:1123px; background:#fff; color:#111;
+    --doc-ink:#16305c;
+    width:793px; min-height:1122px; background:#fff; color:#111;
     padding:10mm 12mm 12mm; margin:0 auto; position:relative;
     font-family:"PingFang HK","Noto Sans HK","Microsoft JhengHei","MingLiU",serif;
     font-size:10.5px; line-height:1.52; letter-spacing:.1px;
@@ -92,11 +93,10 @@ window.HKREA = (function () {
   }
   .paper + .paper{ margin-top:18px; }
   .paper sup{ font-size:.66em; vertical-align:super; line-height:0; }
-  .paper .hd{ display:flex; align-items:flex-start; gap:10px; }
-  .paper .hd .lh{ flex:1 1 auto; }
-  .paper .hd .lh img{ width:100%; max-width:430px; height:auto; display:block; }
-  .paper .hd .mid{ flex:0 0 auto; text-align:center; padding-top:16px; font-size:13px; font-weight:700; }
-  .paper .hd .rt{ flex:0 0 auto; text-align:right; padding-top:2px; }
+  .paper .hd{ display:grid; grid-template-columns:318px 1fr auto; align-items:center; gap:12px; margin-bottom:4px; }
+  .paper .hd .lh img{ width:318px; height:auto; display:block; }
+  .paper .hd .mid{ text-align:center; font-size:13.5px; font-weight:700; letter-spacing:.3px; }
+  .paper .hd .rt{ text-align:right; }
   .paper .formtag{
     display:inline-block; border:1px solid #333; border-radius:3px;
     padding:1px 9px; font-size:11px; font-weight:700;
@@ -118,21 +118,22 @@ window.HKREA = (function () {
   .paper .warn{ margin-top:3px; }
   .paper .fill{
     display:inline-block; border-bottom:1px solid #444; padding:0 4px;
-    color:#8b1a1a; font-weight:700; text-align:center; line-height:1.35;
+    color:var(--doc-ink); font-weight:700; text-align:center; line-height:1.35;
     word-break:break-word;
   }
   .paper .fill.blank{ color:transparent; font-weight:400; }
   .paper .fill.wide{ display:block; width:100%; min-height:15px; }
   .paper .cb{
-    display:inline-block; width:11px; height:11px; border:1px solid #333;
-    vertical-align:-1px; margin:0 3px; position:relative; background:#fff;
+    display:inline-block; width:12px; height:12px; border:1px solid #333;
+    vertical-align:-2px; margin:0 3px; position:relative; background:#fff;
   }
   .paper .cb.on::after{
-    content:"✓"; position:absolute; left:0; right:0; top:-5px;
-    font-size:12px; font-weight:700; color:#8b1a1a; line-height:1;
+    content:"✓"; position:absolute; left:0; top:0; width:12px; height:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; color:var(--doc-ink); line-height:1;
   }
   .paper .opt.del{ text-decoration:line-through; color:#999; }
-  .paper .opt.pick{ font-weight:700; color:#8b1a1a; }
+  .paper .opt.pick{ font-weight:700; color:var(--doc-ink); }
   .paper .lineblank{ border-bottom:1px solid #444; height:15px; margin:7px 0; }
   .paper .sched-h{ text-align:center; font-weight:700; margin:14px 0 4px; font-size:11.6px; }
   .paper .sigwrap{ display:flex; gap:26px; margin-top:4px; }
@@ -140,10 +141,15 @@ window.HKREA = (function () {
   .paper .sigrow{ display:flex; align-items:flex-end; gap:4px; margin-bottom:9px; }
   .paper .sigrow .lb{ flex:0 0 auto; white-space:nowrap; }
   .paper .sigrow .vl{ flex:1 1 auto; border-bottom:1px solid #444; min-height:15px;
-    text-align:center; color:#8b1a1a; font-weight:700; padding:0 4px; }
+    text-align:center; color:var(--doc-ink); font-weight:700; padding:0 4px; }
   .paper .sigrow .vl img{ max-height:42px; max-width:100%; display:block; margin:0 auto; }
   .paper .fixed{ color:#111; font-weight:600; }
   .paper .foot-note{ margin-top:8px; }
+  .paper .pageno{
+    position:absolute; left:0; right:0; bottom:5mm; text-align:center;
+    font-size:9.5px; color:#666; letter-spacing:.5px;
+  }
+  .paper .pageno .r{ position:absolute; right:12mm; bottom:0; }
   @media print{ .paper{ box-shadow:none; margin:0; } }
   `;
 
@@ -266,14 +272,14 @@ window.HKREA = (function () {
             : `<div class="lineblank"></div><div class="lineblank"></div>`}
         </div>
       </div></div>
+      <div class="pageno">第 1 頁 ‧ 共 2 頁<span class="r">${esc(d.serial_no || "")}</span></div>
     </div>`;
   }
 
   /* ---------- 第二頁：簽署欄 + 附表 1–4 ---------- */
   function page2(d) {
-    const sig = d.signature_img
-      ? `<img src="${d.signature_img}" alt="賣方簽署">`
-      : "&nbsp;";
+    const sig = d.signature_img ? `<img src="${d.signature_img}" alt="賣方簽署">` : "&nbsp;";
+    const asig = d.agent_signature ? `<img src="${d.agent_signature}" alt="代理簽署">` : "&nbsp;";
 
     return `
     <div class="paper">
@@ -293,7 +299,7 @@ window.HKREA = (function () {
         </div>
         <div class="sigcol">
           <div style="margin-bottom:9px;">為代理及代代理簽署的</div>
-          <div class="sigrow"><div class="lb">地產代理/營業員的簽署：</div><div class="vl">&nbsp;</div></div>
+          <div class="sigrow"><div class="lb">地產代理/營業員的簽署：</div><div class="vl">${asig}</div></div>
           <div class="sigrow"><div class="lb">簽署人的姓名或名稱及牌照號碼：</div><div class="vl">${esc(d.agent_signer || "")}</div></div>
           <div class="sigrow" style="margin-top:22px;"><div class="lb">代理的營業詳情說明書號碼：</div><div class="vl fixed">${AGENT_LIC}</div></div>
           <div class="sigrow"><div class="lb">地　　址：</div><div class="vl fixed" style="font-size:10px;">${AGENT_ADDR}</div></div>
@@ -360,11 +366,64 @@ window.HKREA = (function () {
       <div class="sub">(a) 身為對物業擁有金錢上的或其他實益的權益的公司或任何其他團體的成員；</div>
       <div class="sub">(b) 與對物業擁有金錢上的或其他實益的權益的人有合夥關係，或受僱於該人；或</div>
       <div class="sub">(c) 屬於任何關乎物業的安排或協議（不論是否可強制執行）的一方。</div>
-      <div>(8) 請於適當的方格內劃上“<span class="cb on" style="vertical-align:-1px;"></span>”號。</div>
+      <div>(8) 請於適當的方格內劃上“<span class="cb on" style="vertical-align:-2px;"></span>”號。</div>
+      <div class="pageno">第 2 頁 ‧ 共 2 頁<span class="r">${esc(d.serial_no || "")}</span></div>
     </div>`;
   }
 
   function render(d) { d = d || {}; return page1(d) + page2(d); }
 
-  return { render, css: CSS, num2cn: (n,u) => { const v = num2cn(n); return v && u ? v + '元整' : v; }, AGENT_NAME, AGENT_LIC, AGENT_ADDR, AGENT_TEL, AGENT_FAX };
+  /* ---------- 員工（營業員）資料：Supabase `staff` 表，冇表就用本機儲存 ---------- */
+  const LS_KEY = "hkrea_staff";
+  function lsRead(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function lsWrite(rows){ localStorage.setItem(LS_KEY, JSON.stringify(rows)); }
+
+  const staff = {
+    async list(sb){
+      try{
+        const { data, error } = await sb.from('staff').select('*').order('name');
+        if (error) throw error;
+        return { rows: data || [], remote: true };
+      }catch(e){
+        return { rows: lsRead(), remote: false, err: e.message };
+      }
+    },
+    async save(sb, row){
+      const payload = {
+        name: row.name || null, licence_no: row.licence_no || null,
+        phone: row.phone || null, signature: row.signature || null
+      };
+      try{
+        let res;
+        if (row.id) res = await sb.from('staff').update(payload).eq('id', row.id).select().single();
+        else        res = await sb.from('staff').insert(payload).select().single();
+        if (res.error) throw res.error;
+        return { row: res.data, remote: true };
+      }catch(e){
+        const rows = lsRead();
+        if (row.id){
+          const i = rows.findIndex(r => String(r.id) === String(row.id));
+          if (i >= 0) rows[i] = Object.assign({}, rows[i], payload, { id: row.id });
+        } else {
+          payload.id = 'loc_' + Date.now();
+          rows.push(payload);
+        }
+        lsWrite(rows);
+        return { row: row.id ? rows.find(r => String(r.id) === String(row.id)) : rows[rows.length - 1], remote: false, err: e.message };
+      }
+    },
+    async remove(sb, id){
+      try{
+        const { error } = await sb.from('staff').delete().eq('id', id);
+        if (error) throw error;
+        return { remote: true };
+      }catch(e){
+        lsWrite(lsRead().filter(r => String(r.id) !== String(id)));
+        return { remote: false, err: e.message };
+      }
+    },
+    label(r){ return (r.name || '') + (r.licence_no ? ' ' + r.licence_no : ''); }
+  };
+
+  return { render, css: CSS, staff, num2cn: (n,u) => { const v = num2cn(n); return v && u ? v + '元整' : v; }, AGENT_NAME, AGENT_LIC, AGENT_ADDR, AGENT_TEL, AGENT_FAX };
 })();
