@@ -305,14 +305,14 @@
       }
     };
 
-    let serial, error;
+    let serial, sign_token, error;
     if (editingSerial){
-      const res = await sb.from('listings').update(record).eq('serial_no', editingSerial).select('serial_no').single();
-      serial = res.data?.serial_no; error = res.error;
+      const res = await sb.from('listings').update(record).eq('serial_no', editingSerial).select('serial_no, sign_token').single();
+      serial = res.data?.serial_no; sign_token = res.data?.sign_token; error = res.error;
     } else {
       record.status = 'draft';
-      const res = await sb.from('listings').insert(record).select('serial_no').single();
-      serial = res.data?.serial_no; error = res.error;
+      const res = await sb.from('listings').insert(record).select('serial_no, sign_token').single();
+      serial = res.data?.serial_no; sign_token = res.data?.sign_token; error = res.error;
     }
 
     if (error){
@@ -325,7 +325,7 @@
     document.getElementById('formView').style.display = 'none';
     document.getElementById('successView').style.display = 'block';
     document.getElementById('serialOut').textContent = serial;
-    const signUrl = `${window.location.origin}/sign.html?serial=${encodeURIComponent(serial)}`;
+    const signUrl = `${window.location.origin}/sign.html?token=${encodeURIComponent(sign_token)}`;
     document.getElementById('signNowLink').href = signUrl;
     window._signUrl = signUrl;
   }

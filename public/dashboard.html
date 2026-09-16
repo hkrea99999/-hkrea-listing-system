@@ -74,7 +74,7 @@
 
       const { data, error } = await sb
         .from('listings')
-        .select('serial_no, property_address, seller_name, status, created_at')
+        .select('serial_no, property_address, seller_name, status, created_at, sign_token')
         .order('created_at', { ascending: false });
 
       if (error){ alert('讀取紀錄失敗：' + error.message); return; }
@@ -94,7 +94,7 @@
           <td>${new Date(row.created_at).toLocaleDateString('zh-HK')}</td>
           <td class="row-actions">
             <a href="new-listing.html?serial=${encodeURIComponent(row.serial_no)}">編輯</a>
-            <a href="sign.html?serial=${encodeURIComponent(row.serial_no)}">簽署</a>
+            <a href="sign.html?token=${encodeURIComponent(row.sign_token)}">簽署</a>
           </td>
         </tr>
       `).join('');
