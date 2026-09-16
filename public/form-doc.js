@@ -84,7 +84,7 @@ window.HKREA = (function () {
   const CSS = `
   .paper, .paper *{ box-sizing:border-box; }
   .paper{
-    --doc-ink:#16305c;
+    --doc-ink:#8b1a1a;
     width:793px; min-height:1122px; background:#fff; color:#111;
     padding:10mm 12mm 12mm; margin:0 auto; position:relative;
     font-family:"PingFang HK","Noto Sans HK","Microsoft JhengHei","MingLiU",serif;
@@ -150,7 +150,11 @@ window.HKREA = (function () {
     font-size:9.5px; color:#666; letter-spacing:.5px;
   }
   .paper .pageno .r{ position:absolute; right:12mm; bottom:0; }
-  @media print{ .paper{ box-shadow:none; margin:0; } }
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    .paper{ box-shadow:none; margin:0 auto; page-break-after:always; break-after:page; }
+    .paper:last-child{ page-break-after:auto; break-after:auto; }
+  }
   `;
 
   /* ---------- 第一頁：條款 1–13 ---------- */

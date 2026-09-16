@@ -57,7 +57,7 @@
 
   <table id="listTable" style="display:none;">
     <thead>
-      <tr><th>流水號</th><th>物業地址</th><th>賣方</th><th>狀態</th><th>建立日期</th><th></th></tr>
+      <tr><th>流水號</th><th>物業地址</th><th>賣方</th><th>狀態</th><th>建立日期</th><th>最後更新</th><th></th></tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
@@ -71,18 +71,35 @@
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const statusLabel = { draft: '草稿', sent: '已送出待簽', signed: '已簽署' };
+  function fmtDT(v){
+    if (!v) return '—';
+    const d = new Date(v);
+    return d.toLocaleDateString('zh-HK') + ' ' + d.toLocaleTimeString('zh-HK', { hour:'2-digit', minute:'2-digit' });
+  }
 
   async function init(){
     const { data: { session } } = await sb.auth.getSession();
     if (!session){ window.location.href = "index.html"; return; }
     document.getElementById('who').textContent = session.user.email;
 
-    const { data, error } = await sb
+    // 有啲舊資料庫未必有 updated_at 呢一欄，先試攞埋佢，攞唔到就退返用 created_at
+    let { data, error } = await sb
       .from('listings')
-      .select('serial_no, property_address, seller_name, status, created_at, sign_token, signed_pdf_url')
-      .order('created_at', { ascending: false });
-
+      .select('serial_no, property_address, seller_name, status, created_at, updated_at, sign_token, signed_pdf_url')
+      .order('updated_at', { ascending: false, nullsFirst: false });
+    let hasUpdatedAt = true;
+    if (error){
+      hasUpdatedAt = false;
+      const res2 = await sb
+        .from('listings')
+        .select('serial_no, property_address, seller_name, status, created_at, sign_token, signed_pdf_url')
+        .order('created_at', { ascending: false });
+      data = res2.data; error = res2.error;
+    }
     if (error){ alert('讀取紀錄失敗：' + error.message); return; }
+    if (!hasUpdatedAt){
+      console.warn('listings 表未有 updated_at 欄；「最後更新」暫時顯示建立日期。可以喺 Supabase 行 README 入面段 SQL 加返呢一欄。');
+    }
     if (!data || data.length === 0){ document.getElementById('emptyMsg').style.display = 'block'; return; }
 
     document.getElementById('listTable').style.display = 'table';
@@ -96,6 +113,7 @@
           <td data-l="賣方">${row.seller_name || '—'}</td>
           <td data-l="狀態"><span class="status ${row.status}">${statusLabel[row.status] || row.status}</span></td>
           <td data-l="建立日期">${new Date(row.created_at).toLocaleDateString('zh-HK')}</td>
+          <td data-l="最後更新">${fmtDT(row.updated_at || row.created_at)}</td>
           <td class="row-actions">
             <a href="sign.html?token=${t}&view=1">檢視</a>
             <a href="new-listing.html?serial=${encodeURIComponent(row.serial_no)}">編輯</a>

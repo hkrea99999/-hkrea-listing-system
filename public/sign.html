@@ -43,6 +43,24 @@
     border:none; border-radius:10px; text-decoration:none; font:inherit; font-size:15px; cursor:pointer;
   }
   .center-state button.ghost{background:#eee; color:#333;}
+
+  .cmodal{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center;
+    justify-content:center; z-index:999; padding:16px;}
+  .cmodal.on{display:flex;}
+  .cmodal .box{background:#fff; border-radius:14px; max-width:420px; width:100%; padding:22px 20px; text-align:center;}
+  .cmodal .box h3{margin:0 0 10px; font-size:16px; color:var(--accent);}
+  .cmodal .box p{font-size:13.5px; color:#444; line-height:1.6; margin:0 0 18px;}
+  .cmodal .box .btns{display:flex; gap:10px;}
+  .cmodal .box button{flex:1; font:inherit; font-size:14.5px; padding:11px; border-radius:9px; border:none; cursor:pointer;}
+  .cmodal .box .yes{background:var(--accent); color:#fff;}
+  .cmodal .box .no{background:#eee; color:#333;}
+  @media print{
+    body{background:#fff; padding:0;}
+    .panel, .pvbar, #viewBar, #busy, #pdfStage{display:none !important;}
+    .pvport{overflow:visible !important;}
+    .pvholder{height:auto !important; width:auto !important;}
+    .pvscale{transform:none !important; width:793px !important;}
+  }
 </style>
 </head>
 <body>
@@ -100,6 +118,17 @@
 <!-- 注意：呢個容器一定要係普通 flow（唔可以 position:absolute/fixed），否則 html2canvas 影出嚟會係白紙 -->
 <div id="pdfStage" style="display:none; width:793px; margin:0; background:#fff;"></div>
 
+<div class="cmodal" id="confirmModal">
+  <div class="box">
+    <h3>確定要簽署？</h3>
+    <p>撳「確定簽署」之後，呢份協議會即時生效，<b>唔可以再更改或撤回</b>。<br>請先確認你已閱讀清楚全部內容，簽名亦已經簽妥。</p>
+    <div class="btns">
+      <button class="no" type="button" onclick="closeConfirm()">返去睇清楚</button>
+      <button class="yes" type="button" onclick="reallySubmit()">確定簽署</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <script src="form-doc.js"></script>
@@ -113,6 +142,7 @@
 
   const qs = new URLSearchParams(window.location.search);
   const token = qs.get('token');
+  let sigLen = 0;
   const viewMode = qs.get('view') === '1';
   let record = null, ctx, drawing = false, last = null, localPdfUrl = null;
 
@@ -172,6 +202,10 @@
       document.querySelector('.panel').style.display = 'none';
       document.getElementById('viewBar').style.display = 'flex';
       show('docView'); fitPreview();
+      Array.from(document.querySelectorAll('#pvScale img')).forEach(im => {
+        if (!im.complete) im.addEventListener('load', fitPreview);
+      });
+      setTimeout(fitPreview, 400);
       return;
     }
 
@@ -195,6 +229,10 @@
     document.getElementById('pvScale').innerHTML = HKREA.render(toDoc(data));
     show('docView');
     fitPreview();
+    Array.from(document.querySelectorAll('#pvScale img')).forEach(im => {
+      if (!im.complete) im.addEventListener('load', fitPreview);
+    });
+    setTimeout(fitPreview, 400);
     setupSig();
   }
 
@@ -206,7 +244,7 @@
     canvas.width = rect.width * devicePixelRatio;
     canvas.height = rect.height * devicePixelRatio;
     ctx.scale(devicePixelRatio, devicePixelRatio);
-    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#8b1a1a';
 
     function pos(e){
       const r = canvas.getBoundingClientRect();
@@ -218,6 +256,7 @@
       if (!drawing) return;
       const p = pos(e);
       ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      sigLen += Math.hypot(p.x - last.x, p.y - last.y);
       last = p; e.preventDefault();
     }
     function end(){ drawing = false; }
@@ -232,7 +271,10 @@
   function clearSig(){
     const c = document.getElementById('sigCanvas');
     ctx.clearRect(0, 0, c.width, c.height);
+    sigLen = 0;
   }
+  // 唔可以「篤一下」就當簽咗名：要有一定長度嘅筆跡
+  function sigStrength(){ return sigLen; }
   function isSigEmpty(){
     const c = document.getElementById('sigCanvas');
     const blank = document.createElement('canvas');
@@ -259,9 +301,9 @@
     const blob = await html2pdf().from(stage).set({
       margin: 0,
       filename: `${docData.serial_no}.pdf`,
-      image: { type: 'jpeg', quality: 0.96 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false, letterRendering: true, imageTimeout: 15000 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: false },
       pagebreak: { mode: ['legacy'] }
     }).outputPdf('blob');
     return blob;
@@ -291,19 +333,30 @@
   }
 
   /* ---------- 提交簽署 ---------- */
-  async function submitSignature(){
+  function submitSignature(){
     const errBox = document.getElementById('errMsg');
-    const btn = document.getElementById('submitBtn');
     errBox.style.display = 'none'; errBox.className = 'msg err';
 
     if (!document.getElementById('confirmRead').checked){
       errBox.textContent = '請先剔選確認已閱讀並明白協議內容。';
       errBox.style.display = 'block'; return;
     }
-    if (isSigEmpty()){
-      errBox.textContent = '請先喺方格內簽名。';
+    if (isSigEmpty() || sigStrength() < 120){
+      errBox.textContent = isSigEmpty()
+        ? '請先喺方格內簽名。'
+        : '簽名太短，唔似一個正式簽署。請撳「清除簽名」再簽多次。';
       errBox.style.display = 'block'; return;
     }
+    // 唔即刻提交 —— 一定要喺呢個彈窗度再確認一次先真正簽署，避免一撳就永久生效
+    document.getElementById('confirmModal').classList.add('on');
+  }
+  function closeConfirm(){ document.getElementById('confirmModal').classList.remove('on'); }
+
+  async function reallySubmit(){
+    document.getElementById('confirmModal').classList.remove('on');
+    const errBox = document.getElementById('errMsg');
+    const btn = document.getElementById('submitBtn');
+    errBox.style.display = 'none'; errBox.className = 'msg err';
 
     btn.disabled = true; btn.textContent = '處理緊，請稍等…';
     const sigCanvas = document.getElementById('sigCanvas');
@@ -333,13 +386,18 @@
     }catch(e){ storageErr = e.message; }
 
     const newFd = Object.assign({}, record.form_data || {}, { signature_img: sigData, seller_date: today });
-    const upd = await sb.from('listings').update({
+    const baseUpdate = {
       status: 'signed',
       signed_at: new Date().toISOString(),
       seller_signature_url: sigUrl,
       signed_pdf_url: pdfUrl,
       form_data: newFd
-    }).eq('sign_token', token);
+    };
+    // listings 表未有 updated_at 欄嘅話（未行 SQL）就自動退返冇嗰個寫法，唔會累到簽署失敗
+    let upd = await sb.from('listings').update(Object.assign({ updated_at: new Date().toISOString() }, baseUpdate)).eq('sign_token', token);
+    if (upd.error && /updated_at/i.test(upd.error.message || '')){
+      upd = await sb.from('listings').update(baseUpdate).eq('sign_token', token);
+    }
 
     if (upd.error){
       errBox.textContent = '更新記錄失敗：' + upd.error.message;
