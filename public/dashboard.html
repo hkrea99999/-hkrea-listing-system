@@ -61,7 +61,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
     // TODO: 換做你自己個Supabase project嘅資料
-const SUPABASE_URL = "https://berctchwlzjskjcjzani.supabase.co";
+  const SUPABASE_URL = "https://berctchwlzjskjcjzani.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable__Nvdq0ZufT37BRdJ1F_TyA_IqkYnqj1";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -93,7 +93,8 @@ const SUPABASE_URL = "https://berctchwlzjskjcjzani.supabase.co";
           <td><span class="status ${row.status}">${statusLabel[row.status] || row.status}</span></td>
           <td>${new Date(row.created_at).toLocaleDateString('zh-HK')}</td>
           <td class="row-actions">
-            <a href="sign.html?serial=${encodeURIComponent(row.serial_no)}">開啟</a>
+            <a href="new-listing.html?serial=${encodeURIComponent(row.serial_no)}">編輯</a>
+            <a href="sign.html?serial=${encodeURIComponent(row.serial_no)}">簽署</a>
           </td>
         </tr>
       `).join('');
