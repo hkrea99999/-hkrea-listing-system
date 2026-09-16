@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新增放盤 - 香港物業</title>
+<style>
+  :root{ --ink:#1a1a1a; --muted:#6b6b6b; --line:#ddd; --accent:#8b1a1a; --bg:#f4f4f5; --field-bg:#fafafa; }
+  *{box-sizing:border-box;}
+  body{ font-family:"PingFang HK","Noto Sans HK",sans-serif; background:var(--bg); margin:0; padding:24px 16px 80px; color:var(--ink); }
+  .wrap{max-width:760px; margin:0 auto;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+  h1{font-size:19px; margin:0;}
+  a.back{font-size:13px; color:var(--muted); text-decoration:none;}
+  .card{background:#fff; border-radius:14px; padding:22px 20px; box-shadow:0 2px 12px rgba(0,0,0,.05); margin-bottom:16px;}
+  .card h2{font-size:15px; margin:0 0 14px; color:var(--accent);}
+  label{display:block; font-size:13px; color:#444; margin:0 0 4px;}
+  input[type=text], input[type=number], input[type=date], textarea, select{
+    width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px;
+    font:inherit; margin-bottom:14px; background:var(--field-bg);
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:0 14px;}
+  .choice{display:flex; gap:16px; margin-bottom:14px; flex-wrap:wrap;}
+  .choice label{display:flex; align-items:center; gap:6px; font-size:14px; margin:0;}
+  .choice input{width:auto; margin:0;}
+  .btn{
+    background:var(--accent); color:#fff; border:none; padding:13px 24px; border-radius:10px;
+    font-size:15px; cursor:pointer; width:100%;
+  }
+  .btn:disabled{opacity:.6;}
+  .msg{font-size:13px; margin-bottom:14px; padding:10px 12px; border-radius:8px; display:none;}
+  .msg.err{background:#fde8e8; color:#a11; display:block;}
+  .success{
+    display:none; text-align:center; background:#fff; border-radius:14px; padding:32px 20px;
+    box-shadow:0 2px 12px rgba(0,0,0,.05);
+  }
+  .success .serial{
+    font-size:22px; font-weight:700; color:var(--accent); margin:8px 0 20px;
+    background:#f6e9e9; display:inline-block; padding:6px 18px; border-radius:8px;
+  }
+  .success .actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+  .success .actions a, .success .actions button{
+    padding:11px 18px; border-radius:8px; font-size:14px; text-decoration:none; border:none; cursor:pointer;
+  }
+  .success .actions .primary{background:var(--accent); color:#fff;}
+  .success .actions .secondary{background:#eee; color:#333;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="formView">
+    <div class="topbar">
+      <h1>新增放盤</h1>
+      <a class="back" href="dashboard.html">← 返回紀錄</a>
+    </div>
+
+    <div class="msg err" id="errMsg"></div>
+
+    <div class="card">
+      <h2>1. 代理委任</h2>
+      <label>賣方姓名</label>
+      <input type="text" id="seller_name">
+      <div class="grid2">
+        <div>
+          <label>賣方香港身分證號碼（如適用）</label>
+          <input type="text" id="seller_id">
+        </div>
+        <div>
+          <label>賣方聯絡電話</label>
+          <input type="text" id="seller_phone">
+        </div>
+      </div>
+      <label>代理關係</label>
+      <div class="choice">
+        <label><input type="radio" name="agency_type" value="獨家"> 獨家代理</label>
+        <label><input type="radio" name="agency_type" value="非獨家"> 非獨家代理</label>
+      </div>
+      <label>物業地址</label>
+      <input type="text" id="property_address">
+      <div class="grid2">
+        <div>
+          <label>協議生效日</label>
+          <input type="date" id="effective_from">
+        </div>
+        <div>
+          <label>協議屆滿日</label>
+          <input type="date" id="effective_to">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. 代理關係類別</h2>
+      <div class="choice">
+        <label><input type="radio" name="rel_type" value="單邊代理"> 單邊代理</label>
+        <label><input type="radio" name="rel_type" value="雙邊代理"> 雙邊代理</label>
+        <label><input type="radio" name="rel_type" value="有可能代表雙方"> 有可能代表雙方</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. 放盤價</h2>
+      <label>放盤價（港幣 HK$）</label>
+      <input type="number" id="asking_price" placeholder="例如 8000000">
+    </div>
+
+    <div class="card">
+      <h2>4. 佣金</h2>
+      <div class="grid2">
+        <div>
+          <label>佣金收取時點</label>
+          <select id="commission_timing">
+            <option value="簽署買賣協議時">簽署買賣協議時</option>
+            <option value="物業交易完成時">物業交易完成時</option>
+          </select>
+        </div>
+        <div>
+          <label>佣金（金額 或 百分比%）</label>
+          <input type="text" id="commission_value" placeholder="例如 1% 或 $80000">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>6-9. 視察物業 / 分銷 / 廣告 / 權益披露</h2>
+      <label>賣方同意容許代理/買方查看物業</label>
+      <div class="choice">
+        <label><input type="radio" name="q_viewing" value="同意"> 同意</label>
+        <label><input type="radio" name="q_viewing" value="不同意"> 不同意</label>
+      </div>
+      <label>賣方同意將鎖匙交由代理保管</label>
+      <div class="choice">
+        <label><input type="radio" name="q_key" value="同意"> 同意</label>
+        <label><input type="radio" name="q_key" value="不同意"> 不同意</label>
+      </div>
+      <label>賣方授權代理分銷放盤</label>
+      <div class="choice">
+        <label><input type="radio" name="q_distribute" value="同意"> 同意</label>
+        <label><input type="radio" name="q_distribute" value="不同意"> 不同意</label>
+      </div>
+      <label>賣方授權代理發出廣告</label>
+      <div class="choice">
+        <label><input type="radio" name="q_advertise" value="同意"> 同意</label>
+        <label><input type="radio" name="q_advertise" value="不同意"> 不同意</label>
+      </div>
+      <label>代理對物業擁有金錢上或其他實益的權益</label>
+      <div class="choice">
+        <label><input type="radio" name="q_interest" value="有"> 有</label>
+        <label><input type="radio" name="q_interest" value="沒有"> 沒有</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>13. 額外條款</h2>
+      <textarea id="extra_terms" rows="3" placeholder="如有額外條款請在此填寫"></textarea>
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="submitListing()">建立放盤記錄，生成流水號</button>
+  </div>
+
+  <div class="success" id="successView">
+    <div>放盤記錄已建立</div>
+    <div class="serial" id="serialOut"></div>
+    <div class="actions">
+      <a class="primary" id="signNowLink" href="#">即場請客人簽署</a>
+      <button class="secondary" onclick="copyLink()">複製簽署link</button>
+      <a class="secondary" href="dashboard.html">返回紀錄列表</a>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  // TODO: 換做你自己個Supabase project嘅資料
+    const SUPABASE_URL = "https://berctchwlzjskjcjzani.supabase.co/";
+    const SUPABASE_ANON_KEY = "sb_publishable__Nvdq0ZufT37BRdJ1F_TyA_IqkYnqj1";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) window.location.href = "index.html";
+  })();
+
+  function val(id){ return document.getElementById(id).value || null; }
+  function radio(name){
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : null;
+  }
+
+  async function submitListing(){
+    const errBox = document.getElementById('errMsg');
+    const btn = document.getElementById('submitBtn');
+    errBox.style.display = 'none';
+
+    const seller_name = val('seller_name');
+    const property_address = val('property_address');
+
+    if (!seller_name || !property_address){
+      errBox.textContent = '請至少填寫賣方姓名同物業地址先可以建立記錄。';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true; btn.textContent = '建立緊…';
+
+    const record = {
+      seller_name,
+      property_address,
+      agency_type: radio('agency_type'),
+      effective_from: val('effective_from'),
+      effective_to: val('effective_to'),
+      asking_price: val('asking_price'),
+      status: 'draft',
+      form_data: {
+        seller_id: val('seller_id'),
+        seller_phone: val('seller_phone'),
+        rel_type: radio('rel_type'),
+        commission_timing: val('commission_timing'),
+        commission_value: val('commission_value'),
+        q_viewing: radio('q_viewing'),
+        q_key: radio('q_key'),
+        q_distribute: radio('q_distribute'),
+        q_advertise: radio('q_advertise'),
+        q_interest: radio('q_interest'),
+        extra_terms: val('extra_terms')
+      }
+    };
+
+    const { data, error } = await sb.from('listings').insert(record).select('serial_no').single();
+
+    if (error){
+      errBox.textContent = '建立失敗：' + error.message;
+      errBox.style.display = 'block';
+      btn.disabled = false; btn.textContent = '建立放盤記錄，生成流水號';
+      return;
+    }
+
+    const serial = data.serial_no;
+    document.getElementById('formView').style.display = 'none';
+    document.getElementById('successView').style.display = 'block';
+    document.getElementById('serialOut').textContent = serial;
+    const signUrl = `${window.location.origin}/sign.html?serial=${encodeURIComponent(serial)}`;
+    document.getElementById('signNowLink').href = signUrl;
+    window._signUrl = signUrl;
+  }
+
+  function copyLink(){
+    navigator.clipboard.writeText(window._signUrl).then(() => alert('簽署link已複製'));
+  }
+</script>
+</body>
+</html>
