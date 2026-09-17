@@ -56,6 +56,7 @@
   .msg:empty{display:none !important; padding:0; margin:0;}
   .msg.err{background:#fde8e8; color:#a11; display:block;}
   .msg.info{background:#e8f0fd; color:#1a4a8b; display:block;}
+  .msg.warn{background:#fff3cd; color:#8a6d00; display:block;}
 
   /* 預覽 */
   .pvcol{position:sticky; top:14px;}
@@ -202,6 +203,9 @@
             <label><input type="radio" name="commission_interest" value="連同利息" onchange="renderPreview()"> 連同利息</label>
             <label><input type="radio" name="commission_interest" value="不連同利息" onchange="renderPreview()"> 不連同利息</label>
           </div>
+          <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:4px 0 0;">
+            <input type="checkbox" id="commission_interest_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
+          </label>
         </div>
 
         <div class="card">
@@ -557,6 +561,7 @@
       commission_pct: val('commission_pct'),
       commission_pct_na: chk('commission_pct_na'),
       commission_interest: radio('commission_interest'),
+      commission_interest_na: chk('commission_interest_na'),
       q_viewing: radio('q_viewing'),
       q_key: radio('q_key'),
       q_key_other: radio('q_key_other'),
@@ -651,7 +656,7 @@
     isAdmin = !!adminRow;
 
     if (editingSerial){
-      document.getElementById('pageTitle').textContent = '編輯放盤 ' + editingSerial;
+      document.getElementById('pageTitle').textContent = '編輯放盤 ' + HKREA.formatSerial(editingSerial);
       document.getElementById('submitBtn').textContent = '更新記錄';
       const { data, error } = await sb.from('listings').select('*').eq('serial_no', editingSerial).single();
       if (error || !data){
@@ -675,6 +680,7 @@
       setVal('commission_pct', fd.commission_pct);
       setChk('commission_pct_na', fd.commission_pct_na);
       setRadio('commission_interest', fd.commission_interest);
+      setChk('commission_interest_na', fd.commission_interest_na);
       ['q_viewing','q_key','q_key_other','q_distribute','q_advertise','q_interest','ack_option']
         .forEach(k => setRadio(k, fd[k]));
       ['interest_details','extra_terms','seller_id','seller_company','signer_name','signer_title',
@@ -686,7 +692,13 @@
       if (fd.staff_id) document.getElementById('staff_id').value = fd.staff_id;
       if (fd.agent_signature) agentPad.load(fd.agent_signature);
 
+      window.__origStatus = data.status;
       if (data.status === 'signed' && !isAdmin) applyLock(true);
+      if (data.status === 'signed' && isAdmin){
+        const warn = document.getElementById('errMsg');
+        warn.className = 'msg warn'; warn.style.display = 'block';
+        warn.textContent = '呢筆記錄賣方已經簽署咗。如果你而家修改並儲存，個狀態會變返做「已送出待簽」，之前嘅簽名同已簽PDF會被清除，需要賣方重新簽署。';
+      }
     }
     await loadStaff();
     if (editingSerial){
@@ -738,7 +750,7 @@
         rel_type: d.rel_type, commission_timing: d.commission_timing,
         commission_amount: d.commission_amount, commission_amount_na: d.commission_amount_na,
         commission_pct: d.commission_pct, commission_pct_na: d.commission_pct_na,
-        commission_interest: d.commission_interest,
+        commission_interest: d.commission_interest, commission_interest_na: d.commission_interest_na,
         q_viewing: d.q_viewing, q_key: d.q_key, q_key_other: d.q_key_other,
         q_distribute: d.q_distribute, q_advertise: d.q_advertise, q_interest: d.q_interest,
         interest_details: d.interest_details, interest_details_na: d.interest_details_na,
@@ -750,6 +762,18 @@
         staff_id: d.staff_id, agent_signature: d.agent_signature
       }
     };
+
+    // Admin 修改一筆已經簽署咗嘅記錄 → 視為內容有變，狀態要退返做「已送出待簽」，
+    // 清走賣方之前嗰個簽名/已簽PDF，等賣方要重新簽署過先算數
+    const wasSigned = editingSerial && window.__origStatus === 'signed';
+    if (wasSigned){
+      record.status = 'sent';
+      record.signed_pdf_url = null;
+      record.signed_at = null;
+      record.seller_signature_url = null;
+      delete record.form_data.signature_img;
+      delete record.form_data.seller_date;
+    }
 
     // 如果 listings 表已經有 updated_at 欄，就順手更新；未有嗰欄嘅話（未行 SQL）就自動退返冇嗰個寫法，唔會累到儲存失敗
     async function saveWithFallback(withTs){

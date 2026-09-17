@@ -42,11 +42,16 @@ window.HKREA = (function () {
   function formatSerial(raw) {
     if (!raw) return "";
     const s = String(raw).trim();
+    // 已經係 No.2026-0007 格式，直接用
     if (/^No\.\d{4}-\d+$/i.test(s)) return s.replace(/^no\./i, "No.");
+    // 資料庫嗰欄已經係 2026-0007 咁樣（年份-序號），只需要加返個「No.」，唔可以再攞晒啲數字去砌一次
+    const ym = s.match(/^(\d{4})-(\d+)$/);
+    if (ym) return `No.${ym[1]}-${ym[2].padStart(4, "0")}`;
+    // 淨係得個純數字（例如 7），先用今年做年份自己砌
     const n = parseInt(s.replace(/[^\d]/g, ""), 10);
     const y = new Date().getFullYear();
-    if (!isNaN(n) && n > 0) return `No.${y}-${String(n).padStart(4, "0")}`;
-    return s;
+    if (!isNaN(n) && n > 0 && /^\d+$/.test(s)) return `No.${y}-${String(n).padStart(4, "0")}`;
+    return s.startsWith("No.") ? s : `No.${s}`;
   }
 
   // 賣方姓名：支援多於一位賣方（sellers 陣列），冇就退返用單一 seller_name
@@ -64,6 +69,10 @@ window.HKREA = (function () {
   function naFill(v, w, naFlag) {
     if (naFlag) return `<span class="fill na" style="min-width:${w || 90}px">&nbsp;</span>`;
     return f(v, w);
+  }
+  // 同 naFill 一樣，但用喺句子中間唔想開新一行嘅位（例如「將佣金 X/Y 退還」）
+  function naInline(w) {
+    return `<span class="fill na" style="min-width:${w || 70}px">&nbsp;</span>`;
   }
 
   // 日期拆做 年 / 月 / 日
@@ -112,7 +121,7 @@ window.HKREA = (function () {
   const CSS = `
   .paper, .paper *{ box-sizing:border-box; }
   .paper{
-    --doc-ink:#8b1a1a;
+    --doc-ink:#1a3a8c;
     width:793px; min-height:1122px; background:#fff; color:#111;
     padding:10mm 12mm 12mm; margin:0 auto; position:relative;
     font-family:"PingFang HK","Noto Sans HK","Microsoft JhengHei","MingLiU",serif;
@@ -374,7 +383,11 @@ window.HKREA = (function () {
         </div>
       </div></div>
       <div class="clause"><div class="n">2.</div><div class="c">
-        除本附表第3條另有規定外，如非因賣方犯錯而令物業交易未能完成，則賣方沒有責任向代理支付任何佣金。在此情況下，如賣方已支付佣金，則代理須在切實可行的範圍內盡快（但無論如何不得遲於由買賣協議指明的完成交易日期起計的5個工作日）將佣金${opt("連同利息", d.commission_interest === "連同利息", !!d.commission_interest)}/${opt("不連同利息", d.commission_interest === "不連同利息", !!d.commission_interest)}${sup(1)}退還予賣方。
+        除本附表第3條另有規定外，如非因賣方犯錯而令物業交易未能完成，則賣方沒有責任向代理支付任何佣金。在此情況下，如賣方已支付佣金，則代理須在切實可行的範圍內盡快（但無論如何不得遲於由買賣協議指明的完成交易日期起計的5個工作日）將佣金${
+          d.commission_interest_na
+            ? `${naInline()}/${naInline()}`
+            : `${opt("連同利息", d.commission_interest === "連同利息", !!d.commission_interest)}/${opt("不連同利息", d.commission_interest === "不連同利息", !!d.commission_interest)}`
+        }${sup(1)}退還予賣方。
       </div></div>
       <div class="clause"><div class="n">3.</div><div class="c">
         如買賣雙方非基於物業的買賣協議的條文而共同取消該具約束力的買賣協議，則賣方須向代理支付佣金。

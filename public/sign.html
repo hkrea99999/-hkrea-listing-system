@@ -226,7 +226,7 @@
     }
 
     if (data.status === 'signed'){
-      document.getElementById('signedSerial').textContent = data.serial_no;
+      document.getElementById('signedSerial').textContent = HKREA.formatSerial(data.serial_no);
       document.getElementById('signedAt').textContent = data.signed_at ? new Date(data.signed_at).toLocaleString('zh-HK') : '—';
       show('signedState');
       showInlinePreview(toDoc(data));
@@ -364,8 +364,8 @@
         : '簽名太短，唔似一個正式簽署。請撳「清除簽名」再簽多次。';
       errBox.style.display = 'block'; return;
     }
-    // 唔即刻提交 —— 一定要喺呢個彈窗度再確認一次先真正簽署，避免一撳就永久生效
-    document.getElementById('confirmModal').classList.add('on');
+    // 撳「確認簽署」即刻真正簽署，唔再彈第二個確認彈窗
+    reallySubmit();
   }
   function closeConfirm(){ document.getElementById('confirmModal').classList.remove('on'); }
 
@@ -423,7 +423,7 @@
       return;
     }
 
-    document.getElementById('signedSerial').textContent = record.serial_no;
+    document.getElementById('signedSerial').textContent = HKREA.formatSerial(record.serial_no);
     document.getElementById('signedAt').textContent = new Date().toLocaleString('zh-HK');
     show('signedState');
     showInlinePreview(docData);
@@ -437,6 +437,26 @@
       w.textContent = '簽署已完成，但PDF上載唔到storage（' + storageErr + '）。而家可以直接下載，遲啲喺後台重新生成。';
       w.style.display = 'block';
     }
+
+    // 通知返兩位admin賣方已簽署（用Edge Function寄email，寄唔到都唔會影響前面個簽署流程）
+    notifyAdminsSigned({ pdf_url: pdfUrl });
+  }
+
+  function notifyAdminsSigned(extra){
+    try{
+      const viewUrl = `${location.origin}${location.pathname.replace(/[^\/]*$/, '')}sign.html?token=${encodeURIComponent(token)}&view=1`;
+      fetch(`${SUPABASE_URL}/functions/v1/notify-signed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({
+          serial_no: record.serial_no,
+          property_address: record.property_address,
+          seller_name: record.seller_name,
+          view_url: viewUrl,
+          ...extra
+        })
+      }).catch(() => {});
+    }catch(e){ /* 靜靜地忽略，唔阻住簽署流程 */ }
   }
 
   async function downloadPdf(){

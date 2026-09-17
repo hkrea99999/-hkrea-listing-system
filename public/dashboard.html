@@ -76,6 +76,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="form-doc.js"></script>
 <script>
   const SUPABASE_URL = "https://berctchwlzjskjcjzani.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable__Nvdq0ZufT37BRdJ1F_TyA_IqkYnqj1";
@@ -128,7 +129,7 @@
 
       return `
         <tr class="${isRecent ? 'recent' : ''}">
-          <td data-l="放盤紀錄">${row.serial_no}${isRecent ? '<span class="newtag">最新</span>' : ''}</td>
+          <td data-l="放盤紀錄">${HKREA.formatSerial(row.serial_no)}${isRecent ? '<span class="newtag">最新</span>' : ''}</td>
           <td data-l="物業地址">${row.property_address || '—'}</td>
           <td data-l="賣方">${(fd.sellers && fd.sellers.filter(Boolean).length ? fd.sellers.filter(Boolean).join('、') : row.seller_name) || '—'}</td>
           <td data-l="經手人">${fd.agent_signer || '—'}</td>
@@ -158,9 +159,9 @@
     const row = (window.__rows || [])[idx];
     if (!row) return;
     const to = 'charbieccw@gmail.com';
-    const subject = `已簽署放盤紀錄 ${row.serial_no} － ${row.property_address || ''}`;
+    const subject = `已簽署放盤紀錄 ${HKREA.formatSerial(row.serial_no)} － ${row.property_address || ''}`;
     const lines = [
-      `放盤紀錄：${row.serial_no}`,
+      `放盤紀錄：${HKREA.formatSerial(row.serial_no)}`,
       `物業地址：${row.property_address || ''}`,
       `狀態：${row.status === 'signed' ? '客人已簽署' : (statusLabel[row.status] || row.status)}`,
       row.signed_at ? `簽署時間：${new Date(row.signed_at).toLocaleString('zh-HK')}` : '',
