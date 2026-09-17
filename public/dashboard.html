@@ -15,11 +15,17 @@
   .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;}
   h1{font-size:18px; margin:0;}
   .who{font-size:13px; color:#888;}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap;}
   .btn{
     background:var(--accent); color:#fff; border:none; padding:10px 16px; border-radius:8px;
-    font:inherit; font-size:14px; cursor:pointer; text-decoration:none; display:inline-block;
+    font:inherit; font-size:14px; cursor:pointer; text-decoration:none; display:inline-flex;
+    align-items:center; justify-content:center; text-align:center; white-space:nowrap;
   }
   .btn.secondary{background:#e9e9ea; color:#333;}
+  @media (max-width:520px){
+    .btnrow{width:100%;}
+    .btnrow .btn{flex:1 1 0; padding:10px 8px;}
+  }
   table{width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.05);}
   th, td{padding:12px 14px; text-align:left; font-size:13.5px; border-bottom:1px solid #f0f0f0;}
   th{background:#fafafa; color:#666; font-weight:600;}
@@ -28,9 +34,14 @@
   .status.sent{background:#fff3cd; color:#8a6d00;}
   .status.signed{background:#d1f5e0; color:#0a7a3d;}
   .row-actions{white-space:nowrap;}
-  .row-actions a{margin-right:10px; font-size:13px; color:var(--accent); text-decoration:none;}
-  .row-actions a.mute{color:#777;}
+  .row-actions a, .row-actions button{margin-right:10px; font-size:13px; color:var(--accent); text-decoration:none;
+    background:none; border:none; font-family:inherit; padding:0; cursor:pointer;}
+  .row-actions a.mute, .row-actions button.mute{color:#777;}
   .empty{padding:40px; text-align:center; color:#999;}
+  tr.recent{background:#fff8e6;}
+  tr.recent td{background:transparent;}
+  .newtag{display:inline-block; margin-left:6px; font-size:10.5px; background:#8b1a1a; color:#fff;
+    padding:1px 6px; border-radius:10px; vertical-align:1px;}
   @media (max-width:760px){
     table, thead, tbody, tr, td, th{display:block;}
     thead{display:none;}
@@ -48,7 +59,7 @@
       <h1>放盤紀錄</h1>
       <span class="who" id="who"></span>
     </div>
-    <div>
+    <div class="btnrow">
       <a class="btn" href="new-listing.html">＋ 新增放盤</a>
       <a class="btn secondary" href="new-listing.html#staff">員工資料</a>
       <a class="btn secondary" href="#" onclick="logout();return false;">登出</a>
@@ -57,7 +68,7 @@
 
   <table id="listTable" style="display:none;">
     <thead>
-      <tr><th>流水號</th><th>物業地址</th><th>賣方</th><th>狀態</th><th>建立日期</th><th>最後更新</th><th></th></tr>
+      <tr><th>放盤紀錄</th><th>物業地址</th><th>賣方</th><th>經手人</th><th>狀態</th><th>建立日期</th><th>最後更新</th><th></th></tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
@@ -85,14 +96,14 @@
     // 有啲舊資料庫未必有 updated_at 呢一欄，先試攞埋佢，攞唔到就退返用 created_at
     let { data, error } = await sb
       .from('listings')
-      .select('serial_no, property_address, seller_name, status, created_at, updated_at, sign_token, signed_pdf_url')
+      .select('serial_no, property_address, seller_name, status, created_at, updated_at, sign_token, signed_pdf_url, signed_at, form_data')
       .order('updated_at', { ascending: false, nullsFirst: false });
     let hasUpdatedAt = true;
     if (error){
       hasUpdatedAt = false;
       const res2 = await sb
         .from('listings')
-        .select('serial_no, property_address, seller_name, status, created_at, sign_token, signed_pdf_url')
+        .select('serial_no, property_address, seller_name, status, created_at, sign_token, signed_pdf_url, signed_at, form_data')
         .order('created_at', { ascending: false });
       data = res2.data; error = res2.error;
     }
@@ -103,14 +114,24 @@
     if (!data || data.length === 0){ document.getElementById('emptyMsg').style.display = 'block'; return; }
 
     document.getElementById('listTable').style.display = 'table';
-    document.getElementById('tbody').innerHTML = data.map(row => {
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    window.__rows = data; // 俾 emailPdf() 攞返 row 資料
+
+    document.getElementById('tbody').innerHTML = data.map((row, idx) => {
       const t = encodeURIComponent(row.sign_token);
       const signed = row.status === 'signed';
+      const fd = row.form_data || {};
+      const lastTouch = new Date(row.updated_at || row.signed_at || row.created_at).getTime();
+      const isRecent = (now - lastTouch) < ONE_WEEK;
+      const shareUrl = `${location.origin}${location.pathname.replace(/[^\/]*$/, '')}sign.html?token=${t}&view=1`;
+
       return `
-        <tr>
-          <td data-l="流水號">${row.serial_no}</td>
+        <tr class="${isRecent ? 'recent' : ''}">
+          <td data-l="放盤紀錄">${row.serial_no}${isRecent ? '<span class="newtag">最新</span>' : ''}</td>
           <td data-l="物業地址">${row.property_address || '—'}</td>
-          <td data-l="賣方">${row.seller_name || '—'}</td>
+          <td data-l="賣方">${(fd.sellers && fd.sellers.filter(Boolean).length ? fd.sellers.filter(Boolean).join('、') : row.seller_name) || '—'}</td>
+          <td data-l="經手人">${fd.agent_signer || '—'}</td>
           <td data-l="狀態"><span class="status ${row.status}">${statusLabel[row.status] || row.status}</span></td>
           <td data-l="建立日期">${new Date(row.created_at).toLocaleDateString('zh-HK')}</td>
           <td data-l="最後更新">${fmtDT(row.updated_at || row.created_at)}</td>
@@ -118,11 +139,36 @@
             <a href="sign.html?token=${t}&view=1">檢視</a>
             <a href="new-listing.html?serial=${encodeURIComponent(row.serial_no)}">編輯</a>
             ${signed
-              ? `<a class="mute" href="${row.signed_pdf_url || ('sign.html?token=' + t + '&view=1')}" target="_blank" rel="noopener">PDF</a>`
+              ? `<a class="mute" href="${row.signed_pdf_url || ('sign.html?token=' + t + '&view=1')}" target="_blank" rel="noopener">PDF</a>
+                 <button class="mute" onclick="copyShareLink('${shareUrl}')">複製link</button>
+                 <button class="mute" onclick="emailPdf(${idx}, '${shareUrl.replace(/'/g, "\\'")}')">Email</button>`
               : `<a href="sign.html?token=${t}">簽署</a>`}
           </td>
         </tr>`;
     }).join('');
+  }
+
+  function copyShareLink(url){
+    navigator.clipboard.writeText(url).then(() => alert('睇覽link已複製，可以傳俾自己或客人。'));
+  }
+
+  // 用 mailto 開啟本機郵件App，將PDF連結（signed_pdf_url）同睇覽link一齊帶去，
+  // 因為純前端冇後台，未能夠自動夾附件寄出；PDF已經係公開link，收件人撳一下就睇到/下載到。
+  function emailPdf(idx, shareUrl){
+    const row = (window.__rows || [])[idx];
+    if (!row) return;
+    const to = 'charbieccw@gmail.com';
+    const subject = `已簽署放盤紀錄 ${row.serial_no} － ${row.property_address || ''}`;
+    const lines = [
+      `放盤紀錄：${row.serial_no}`,
+      `物業地址：${row.property_address || ''}`,
+      `狀態：${row.status === 'signed' ? '客人已簽署' : (statusLabel[row.status] || row.status)}`,
+      row.signed_at ? `簽署時間：${new Date(row.signed_at).toLocaleString('zh-HK')}` : '',
+      row.signed_pdf_url ? `已簽署 PDF：${row.signed_pdf_url}` : '',
+      `睇覽link（自己/客人都可以用嚟睇返份文件）：${shareUrl}`
+    ].filter(Boolean);
+    const body = lines.join('\n');
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
   async function logout(){

@@ -127,33 +127,16 @@
     </div>
 
     <div class="layout">
-      <!-- ============ 左：表格 ============ -->
+      <!-- ============ 左：表格（順序跟返右邊文件預覽嘅先後） ============ -->
       <div class="paneForm" id="paneForm">
 
         <div class="card">
-          <h2>經手營業員及代理簽署（送出前必須簽）</h2>
-          <label class="fl">經手營業員</label>
-          <div class="rowbtn">
-            <select id="staff_id" onchange="pickStaff()"><option value="">— 請選擇 —</option></select>
-            <button type="button" onclick="openStaff()">管理員工</button>
-          </div>
-          <div class="grid2">
-            <div><label class="fl">簽署人的姓名或名稱及牌照號碼</label><input type="text" id="agent_signer" oninput="renderPreview()"></div>
-            <div><label class="fl">代理簽署日期</label><input type="date" id="agent_date" oninput="renderPreview()"></div>
-          </div>
-          <label class="fl">地產代理/營業員簽署</label>
-          <div class="sigpad"><canvas id="agentSig"></canvas></div>
-          <div class="sigtools">
-            <button type="button" onclick="useSavedSig()">用番員工儲存嘅簽名</button>
-            <button type="button" onclick="clearAgentSig()">清除</button>
-          </div>
-          <div class="hint">代理簽好先送link俾賣方；賣方喺簽署頁會見到代理已簽。</div>
-        </div>
-
-        <div class="card">
           <h2>第 1 條　代理的委任及有效期</h2>
-          <label class="fl">賣方姓名（本人/我們）</label>
-          <input type="text" id="seller_name" oninput="renderPreview()">
+          <label class="fl">賣方姓名（本人/我們）－ 可加多過一位賣方</label>
+          <div id="sellerList"></div>
+          <button type="button" class="rowbtn" style="border:1px solid var(--line); background:#fff; color:#444;
+            padding:7px 12px; border-radius:8px; font-size:13px; cursor:pointer; margin-bottom:12px;"
+            onclick="addSeller()">＋ 加多位賣方</button>
           <label class="fl">代理關係（獨家 / 非獨家）</label>
           <div class="choice">
             <label><input type="radio" name="agency_type" value="獨家" onchange="renderPreview()"> 獨家代理</label>
@@ -162,10 +145,16 @@
           <label class="fl">物業地址</label>
           <input type="text" id="property_address" oninput="renderPreview()">
           <div class="grid2">
-            <div><label class="fl">起生效日期</label><input type="date" id="effective_from" oninput="renderPreview()"></div>
+            <div><label class="fl">起生效日期</label><input type="date" id="effective_from" oninput="onEffFromChange()"></div>
             <div><label class="fl">屆滿日期</label><input type="date" id="effective_to" oninput="renderPreview()"></div>
           </div>
-          <div class="hint">首尾兩天包括在內。</div>
+          <div class="choice">
+            <label style="cursor:pointer;"><button type="button" style="border:none;background:none;font:inherit;cursor:pointer;padding:0;"
+              onclick="setEffPeriod(3)">生效期：3個月</button></label>
+            <label style="cursor:pointer;"><button type="button" style="border:none;background:none;font:inherit;cursor:pointer;padding:0;"
+              onclick="setEffPeriod(12)">生效期：1年</button></label>
+          </div>
+          <div class="hint">首尾兩天包括在內。如留空，送出時會自動用「起生效日期＝今日、屆滿日期＝3個月後」，之後隨時可以編輯再改。</div>
         </div>
 
         <div class="card">
@@ -193,8 +182,25 @@
             <label><input type="radio" name="commission_timing" value="物業交易完成時" onchange="renderPreview()"> 交易完成時</label>
           </div>
           <div class="grid2">
-            <div><label class="fl">一筆數額 $</label><input type="text" id="commission_amount" placeholder="例如 80000" oninput="renderPreview()"></div>
-            <div><label class="fl">或 成交價的 %</label><input type="text" id="commission_pct" placeholder="例如 1" oninput="renderPreview()"></div>
+            <div>
+              <label class="fl">一筆數額 $</label>
+              <input type="text" id="commission_amount" placeholder="好多時候留空，喺文件度只係一條線" oninput="renderPreview()">
+              <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
+                <input type="checkbox" id="commission_amount_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
+              </label>
+            </div>
+            <div>
+              <label class="fl">或 成交價的 %（一般都係 1%）</label>
+              <input type="text" id="commission_pct" placeholder="例如 1" oninput="renderPreview()">
+              <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
+                <input type="checkbox" id="commission_pct_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
+              </label>
+            </div>
+          </div>
+          <label class="fl">附表2第2條　如交易未能完成，退款是否連同利息</label>
+          <div class="choice">
+            <label><input type="radio" name="commission_interest" value="連同利息" onchange="renderPreview()"> 連同利息</label>
+            <label><input type="radio" name="commission_interest" value="不連同利息" onchange="renderPreview()"> 不連同利息</label>
           </div>
         </div>
 
@@ -233,6 +239,9 @@
           <div id="interestWrap" style="display:none;">
             <label class="fl">附表 3　權益詳情（揀「有」就必須填）</label>
             <textarea id="interest_details" oninput="renderPreview()"></textarea>
+            <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
+              <input type="checkbox" id="interest_details_na" style="width:auto;margin:0;" onchange="renderPreview()"> 留空並喺文件劃線
+            </label>
           </div>
         </div>
 
@@ -241,12 +250,18 @@
           <div class="choice">
             <label><input type="radio" name="ack_option" value="已收取" onchange="renderPreview()"> 已收取物業資料表格</label>
             <label><input type="radio" name="ack_option" value="簽約前收取" onchange="renderPreview()"> 同意簽買賣協議前先收取</label>
+            <button type="button" style="border:1px solid var(--line); background:#fff; color:#777; padding:7px 12px; border-radius:8px; font-size:13px; cursor:pointer;"
+              onclick="clearRadio('ack_option')">清空選擇</button>
           </div>
+          <div class="hint">兩樣都可以留空（唔揀），文件會保持兩格都未剔。</div>
         </div>
 
         <div class="card">
           <h2>第 13 條　額外條款</h2>
           <textarea id="extra_terms" placeholder="如有額外條款請喺此填寫，冇就留白" oninput="renderPreview()"></textarea>
+          <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
+            <input type="checkbox" id="extra_terms_na" style="width:auto;margin:0;" onchange="renderPreview()"> 冇額外條款，喺文件劃線
+          </label>
         </div>
 
         <div class="card">
@@ -265,8 +280,28 @@
           <div class="hint">賣方簽署同日期會喺客人簽署嗰陣自動填入。</div>
         </div>
 
+        <div class="card">
+          <h2>經手營業員及代理簽署（送出前必須簽）</h2>
+          <label class="fl">經手營業員</label>
+          <div class="rowbtn">
+            <select id="staff_id" onchange="pickStaff()"><option value="">— 請選擇 —</option></select>
+            <button type="button" onclick="openStaff()">管理員工</button>
+          </div>
+          <div class="grid2">
+            <div><label class="fl">簽署人的姓名或名稱及牌照號碼</label><input type="text" id="agent_signer" oninput="renderPreview()"></div>
+            <div><label class="fl">代理簽署日期</label><input type="date" id="agent_date" oninput="renderPreview()"></div>
+          </div>
+          <label class="fl">地產代理/營業員簽署</label>
+          <div class="sigpad"><canvas id="agentSig"></canvas></div>
+          <div class="sigtools">
+            <button type="button" onclick="useSavedSig()">用番員工儲存嘅簽名</button>
+            <button type="button" onclick="clearAgentSig()">清除</button>
+          </div>
+          <div class="hint">代理簽好先送link俾賣方；賣方喺簽署頁會見到代理已簽。</div>
+        </div>
+
         <div class="actionbar">
-          <button class="btn" id="submitBtn" onclick="submitListing()">建立放盤記錄，生成流水號</button>
+          <button class="btn" id="submitBtn" onclick="submitListing()">建立放盤紀錄，生成No.</button>
         </div>
       </div>
 
@@ -333,6 +368,47 @@
   const setVal = (id, v) => { if (v !== null && v !== undefined) document.getElementById(id).value = v; };
   const radio = n => { const el = document.querySelector(`input[name="${n}"]:checked`); return el ? el.value : null; };
   const setRadio = (n, v) => { if (!v) return; const el = document.querySelector(`input[name="${n}"][value="${v}"]`); if (el) el.checked = true; };
+  const chk = id => document.getElementById(id).checked;
+  const setChk = (id, v) => { document.getElementById(id).checked = !!v; };
+  function clearRadio(n){
+    document.querySelectorAll(`input[name="${n}"]`).forEach(el => el.checked = false);
+    renderPreview();
+  }
+
+  /* ---------- 多位賣方 ---------- */
+  let sellersArr = [""];
+  function renderSellerList(){
+    const wrap = document.getElementById('sellerList');
+    wrap.innerHTML = sellersArr.map((v, i) => `
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <input type="text" value="${(v || '').replace(/"/g, '&quot;')}" placeholder="賣方 ${i + 1} 姓名"
+          oninput="updateSeller(${i}, this.value)" style="flex:1;">
+        ${sellersArr.length > 1 ? `<button type="button" onclick="removeSeller(${i})"
+          style="border:1px solid var(--line); background:#fff; color:#b91c1c; border-radius:8px; padding:0 12px; cursor:pointer;">刪除</button>` : ''}
+      </div>`).join('');
+  }
+  function addSeller(){ sellersArr.push(""); renderSellerList(); renderPreview(); }
+  function removeSeller(i){ sellersArr.splice(i, 1); if (!sellersArr.length) sellersArr = [""]; renderSellerList(); renderPreview(); }
+  function updateSeller(i, v){ sellersArr[i] = v; renderPreview(); }
+
+  /* ---------- 生效日期快速選擇 ---------- */
+  function addMonths(dateStr, months){
+    const d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().slice(0, 10);
+  }
+  function setEffPeriod(months){
+    const fromEl = document.getElementById('effective_from');
+    if (!fromEl.value) fromEl.value = new Date().toISOString().slice(0, 10);
+    document.getElementById('effective_to').value = addMonths(fromEl.value, months);
+    renderPreview();
+  }
+  function onEffFromChange(){
+    const toEl = document.getElementById('effective_to');
+    const fromEl = document.getElementById('effective_from');
+    if (fromEl.value && !toEl.value) toEl.value = addMonths(fromEl.value, 3);
+    renderPreview();
+  }
 
   /* ---------- 簽名板 ---------- */
   function makePad(id){
@@ -397,7 +473,7 @@
     if (cur) sel.value = cur;
     const note = document.getElementById('staffNote');
     if (!res.remote){
-      note.textContent = '員工資料暫時存喺呢部機（Supabase 未有 staff 表或未有權限）。行咗 README 入面段 SQL 之後就會全公司共用。';
+      note.textContent = '讀取員工資料失敗（' + (res.err || '') + '）。請確認 Supabase 已建立 staff 表同埋你有權限，員工資料唔會存喺呢部機。';
       note.style.display = 'block';
     } else { note.textContent = ''; note.style.display = 'none'; }
     renderStaffList();
@@ -455,6 +531,7 @@
       signature: sfSigPad.dataUrl()
     };
     const res = await HKREA.staff.save(sb, row);
+    if (!res.row){ alert('員工資料儲存失敗：' + (res.err || '未知錯誤')); return; }
     document.getElementById('sf_id').value = '';
     document.getElementById('sf_name').value = '';
     document.getElementById('sf_lic').value = '';
@@ -466,7 +543,8 @@
   function collect(){
     return {
       serial_no: editingSerial || "待建立",
-      seller_name: val('seller_name'),
+      sellers: sellersArr.slice(),
+      seller_name: sellersArr.filter(s => s && s.trim()).join('、') || null,
       agency_type: radio('agency_type'),
       property_address: val('property_address'),
       effective_from: val('effective_from'),
@@ -475,7 +553,10 @@
       asking_price: val('asking_price'),
       commission_timing: radio('commission_timing'),
       commission_amount: val('commission_amount'),
+      commission_amount_na: chk('commission_amount_na'),
       commission_pct: val('commission_pct'),
+      commission_pct_na: chk('commission_pct_na'),
+      commission_interest: radio('commission_interest'),
       q_viewing: radio('q_viewing'),
       q_key: radio('q_key'),
       q_key_other: radio('q_key_other'),
@@ -483,8 +564,10 @@
       q_advertise: radio('q_advertise'),
       q_interest: radio('q_interest'),
       interest_details: val('interest_details'),
+      interest_details_na: chk('interest_details_na'),
       ack_option: radio('ack_option'),
       extra_terms: val('extra_terms'),
+      extra_terms_na: chk('extra_terms_na'),
       seller_id: val('seller_id'),
       seller_company: val('seller_company'),
       signer_name: val('signer_name'),
@@ -577,7 +660,9 @@
         return;
       }
       const fd = data.form_data || {}; window.__fd = fd;
-      setVal('seller_name', data.seller_name);
+      sellersArr = (Array.isArray(fd.sellers) && fd.sellers.length) ? fd.sellers.slice()
+        : (data.seller_name ? data.seller_name.split(/[、,，]/).map(s => s.trim()).filter(Boolean) : [""]);
+      renderSellerList();
       setVal('property_address', data.property_address);
       setRadio('agency_type', data.agency_type);
       setVal('effective_from', data.effective_from);
@@ -586,12 +671,17 @@
       setRadio('rel_type', fd.rel_type);
       setRadio('commission_timing', fd.commission_timing);
       setVal('commission_amount', fd.commission_amount);
+      setChk('commission_amount_na', fd.commission_amount_na);
       setVal('commission_pct', fd.commission_pct);
+      setChk('commission_pct_na', fd.commission_pct_na);
+      setRadio('commission_interest', fd.commission_interest);
       ['q_viewing','q_key','q_key_other','q_distribute','q_advertise','q_interest','ack_option']
         .forEach(k => setRadio(k, fd[k]));
       ['interest_details','extra_terms','seller_id','seller_company','signer_name','signer_title',
        'seller_br','seller_address','seller_phone','seller_fax','agent_signer','agent_date']
         .forEach(k => setVal(k, fd[k]));
+      setChk('interest_details_na', fd.interest_details_na);
+      setChk('extra_terms_na', fd.extra_terms_na);
 
       if (fd.staff_id) document.getElementById('staff_id').value = fd.staff_id;
       if (fd.agent_signature) agentPad.load(fd.agent_signature);
@@ -604,6 +694,8 @@
       if (fd0.staff_id) document.getElementById('staff_id').value = fd0.staff_id;
     } else {
       document.getElementById('agent_date').value = new Date().toISOString().slice(0,10);
+      renderSellerList();
+      if (!document.getElementById('commission_pct').value) document.getElementById('commission_pct').value = '1';
     }
     renderPreview();
     syncPanes();
@@ -626,6 +718,11 @@
       errBox.style.display = 'block';
       switchTab('form'); window.scrollTo(0,0); return;
     }
+    // 生效日期留空就自動填：起=今日，屆滿=3個月後；之後隨時可以編輯再改
+    if (!d.effective_from) d.effective_from = new Date().toISOString().slice(0, 10);
+    if (!d.effective_to) d.effective_to = addMonths(d.effective_from, 3);
+    setVal('effective_from', d.effective_from);
+    setVal('effective_to', d.effective_to);
 
     btn.disabled = true; btn.textContent = editingSerial ? '更新緊…' : '建立緊…';
 
@@ -637,11 +734,15 @@
       effective_to: d.effective_to,
       asking_price: d.asking_price,
       form_data: {
+        sellers: d.sellers,
         rel_type: d.rel_type, commission_timing: d.commission_timing,
-        commission_amount: d.commission_amount, commission_pct: d.commission_pct,
+        commission_amount: d.commission_amount, commission_amount_na: d.commission_amount_na,
+        commission_pct: d.commission_pct, commission_pct_na: d.commission_pct_na,
+        commission_interest: d.commission_interest,
         q_viewing: d.q_viewing, q_key: d.q_key, q_key_other: d.q_key_other,
         q_distribute: d.q_distribute, q_advertise: d.q_advertise, q_interest: d.q_interest,
-        interest_details: d.interest_details, ack_option: d.ack_option, extra_terms: d.extra_terms,
+        interest_details: d.interest_details, interest_details_na: d.interest_details_na,
+        ack_option: d.ack_option, extra_terms: d.extra_terms, extra_terms_na: d.extra_terms_na,
         seller_id: d.seller_id, seller_company: d.seller_company, signer_name: d.signer_name,
         signer_title: d.signer_title, seller_br: d.seller_br, seller_address: d.seller_address,
         seller_phone: d.seller_phone, seller_fax: d.seller_fax,
@@ -668,13 +769,13 @@
     if (error){
       errBox.textContent = '儲存失敗：' + error.message;
       errBox.style.display = 'block';
-      btn.disabled = false; btn.textContent = editingSerial ? '更新記錄' : '建立放盤記錄，生成流水號';
+      btn.disabled = false; btn.textContent = editingSerial ? '更新記錄' : '建立放盤紀錄，生成No.';
       return;
     }
 
     document.getElementById('formView').style.display = 'none';
     document.getElementById('successView').style.display = 'block';
-    document.getElementById('serialOut').textContent = serial;
+    document.getElementById('serialOut').textContent = HKREA.formatSerial(serial);
     const base = window.location.href.replace(/\/[^\/]*$/, '');
     const signUrl = `${base}/sign.html?token=${encodeURIComponent(sign_token)}`;
     document.getElementById('signNowLink').href = signUrl;

@@ -76,6 +76,9 @@
   <div class="serial-big" id="signedSerial"></div>
   <div style="font-size:13px; color:var(--muted);">簽署時間：<span id="signedAt"></span></div>
   <div class="msg warn" id="dlWarn"></div>
+  <div style="font-size:13px; color:var(--muted); max-width:420px; margin:10px auto; line-height:1.6;">
+    你可以下載已簽署嘅PDF留底做副本；如果想儲落手機相簿，喺下面文件圖片度長按（iPhone/Android都得）揀「儲存圖片」就得，同其他政府表格一樣簡單。
+  </div>
   <div>
     <a class="dl" id="downloadLink" href="#" target="_blank" rel="noopener">下載已簽署PDF</a>
     <button class="dl ghost" id="regenBtn" style="display:none;" onclick="regeneratePdf()">重新生成PDF</button>
@@ -151,6 +154,19 @@
       document.getElementById(x).style.display = (x === id) ? 'block' : 'none');
   }
 
+  // 簽署成功之後，喺確認語句下面直接顯示已簽文件（唔使再彈message），畀客人即刻可以長按/下載
+  function showInlinePreview(docData){
+    document.getElementById('docView').style.display = 'block';
+    document.querySelector('.panel').style.display = 'none';
+    document.getElementById('viewBar').style.display = 'flex';
+    document.getElementById('pvScale').innerHTML = HKREA.render(docData);
+    fitPreview();
+    Array.from(document.querySelectorAll('#pvScale img')).forEach(im => {
+      if (!im.complete) im.addEventListener('load', fitPreview);
+    });
+    setTimeout(fitPreview, 400);
+  }
+
   function toDoc(data, extra){
     const fd = data.form_data || {};
     return Object.assign({
@@ -213,6 +229,7 @@
       document.getElementById('signedSerial').textContent = data.serial_no;
       document.getElementById('signedAt').textContent = data.signed_at ? new Date(data.signed_at).toLocaleString('zh-HK') : '—';
       show('signedState');
+      showInlinePreview(toDoc(data));
       const ok = await urlOk(data.signed_pdf_url);
       const link = document.getElementById('downloadLink');
       if (ok){ link.href = data.signed_pdf_url; }
@@ -409,6 +426,7 @@
     document.getElementById('signedSerial').textContent = record.serial_no;
     document.getElementById('signedAt').textContent = new Date().toLocaleString('zh-HK');
     show('signedState');
+    showInlinePreview(docData);
 
     if (pdfUrl){
       const link = document.getElementById('downloadLink');

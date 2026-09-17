@@ -38,6 +38,34 @@ window.HKREA = (function () {
 
   function sup(n) { return `<sup>(${n})</sup>`; }
 
+  // 統一流水號格式：No.2026-0004（如已經係呢個格式就照用）
+  function formatSerial(raw) {
+    if (!raw) return "";
+    const s = String(raw).trim();
+    if (/^No\.\d{4}-\d+$/i.test(s)) return s.replace(/^no\./i, "No.");
+    const n = parseInt(s.replace(/[^\d]/g, ""), 10);
+    const y = new Date().getFullYear();
+    if (!isNaN(n) && n > 0) return `No.${y}-${String(n).padStart(4, "0")}`;
+    return s;
+  }
+
+  // 賣方姓名：支援多於一位賣方（sellers 陣列），冇就退返用單一 seller_name
+  function sellerNames(d) {
+    if (Array.isArray(d.sellers) && d.sellers.length) {
+      return d.sellers.filter(x => x && String(x).trim()).join("、");
+    }
+    return d.seller_name || "";
+  }
+
+  // 留空又想劃線（表示「不適用」）嗰啲位用呢個：勾咗 na 就畫斜線，冇勾就係普通留白
+  function naLine(naFlag) {
+    return `<div class="lineblank${naFlag ? " na" : ""}"></div>`;
+  }
+  function naFill(v, w, naFlag) {
+    if (naFlag) return `<span class="fill na" style="min-width:${w || 90}px">&nbsp;</span>`;
+    return f(v, w);
+  }
+
   // 日期拆做 年 / 月 / 日
   function dparts(iso) {
     if (!iso) return { y: "", m: "", d: "" };
@@ -134,7 +162,12 @@ window.HKREA = (function () {
   }
   .paper .opt.del{ text-decoration:line-through; color:#999; }
   .paper .opt.pick{ font-weight:700; color:var(--doc-ink); }
-  .paper .lineblank{ border-bottom:1px solid #444; height:15px; margin:7px 0; }
+  .paper .lineblank{ border-bottom:1px solid #444; height:15px; margin:7px 0; position:relative; }
+  .paper .lineblank.na{ border-bottom-color:#999; }
+  .paper .lineblank.na::after{
+    content:""; position:absolute; left:0; right:0; top:50%; border-top:1px solid #444;
+  }
+  .paper .fill.na{ text-decoration:line-through; color:#999 !important; }
   .paper .sched-h{ text-align:center; font-weight:700; margin:14px 0 4px; font-size:11.6px; }
   .paper .sigwrap{ display:flex; gap:26px; margin-top:4px; }
   .paper .sigcol{ flex:1 1 0; min-width:0; }
@@ -171,7 +204,7 @@ window.HKREA = (function () {
         <div class="mid">出售香港住宅物業用的地產代理協議</div>
         <div class="rt">
           <div class="formtag">表格 3</div>
-          <div class="serialno"><em>No.</em>${esc(d.serial_no || "—")}</div>
+          <div class="serialno">${esc(formatSerial(d.serial_no) || "No.—")}</div>
         </div>
       </div>
 
@@ -188,7 +221,7 @@ window.HKREA = (function () {
       <div class="clause"><div class="n">1.</div><div class="c">
         <b>代理的委任及本協議的有效期：</b>
         <div class="sub">
-          本人/我們：${f(d.seller_name, 300)}（“賣方”）現按照本協議的條款並在該等條款的規限下
+          本人/我們：${f(sellerNames(d), 300)}（“賣方”）現按照本協議的條款並在該等條款的規限下
           委任 ${f(AGENT_NAME, 190)}（“代理${sup(2)}”）為本人/我們的
           ${opt("獨家", ex, anyAg)}${sup(3)}/${opt("非獨家", nonex, anyAg)}${sup(1)}代理，以推銷位於
           ${f(d.property_address, 320)} 的物業（“物業”）。
@@ -273,10 +306,10 @@ window.HKREA = (function () {
         <div class="sub" style="margin-top:6px;">
           ${d.extra_terms
             ? `<span class="fill wide" style="text-align:left;">${esc(d.extra_terms).replace(/\n/g, "<br>")}</span>`
-            : `<div class="lineblank"></div><div class="lineblank"></div>`}
+            : `${naLine(d.extra_terms_na)}${naLine(d.extra_terms_na)}`}
         </div>
       </div></div>
-      <div class="pageno">第 1 頁 ‧ 共 2 頁<span class="r">${esc(d.serial_no || "")}</span></div>
+      <div class="pageno">第 1 頁 ‧ 共 2 頁<span class="r">${esc(formatSerial(d.serial_no))}</span></div>
     </div>`;
   }
 
@@ -337,11 +370,11 @@ window.HKREA = (function () {
           ${cb(d.commission_timing === "物業交易完成時")}${sup(8)} 買賣協議指明的物業交易完成時，
         </div>
         <div class="sub" style="margin-top:3px;">
-          向代理支付一筆數額$ ${f(d.commission_amount, 200)} /物業成交價的 ${f(d.commission_pct, 90)} %${sup(1)}作為代理的佣金。
+          向代理支付一筆數額$ ${naFill(d.commission_amount, 200, d.commission_amount_na)} /物業成交價的 ${naFill(d.commission_pct, 90, d.commission_pct_na)} %${sup(1)}作為代理的佣金。
         </div>
       </div></div>
       <div class="clause"><div class="n">2.</div><div class="c">
-        除本附表第3條另有規定外，如非因賣方犯錯而令物業交易未能完成，則賣方沒有責任向代理支付任何佣金。在此情況下，如賣方已支付佣金，則代理須在切實可行的範圍內盡快（但無論如何不得遲於由買賣協議指明的完成交易日期起計的5個工作日）將佣金連同利息/不連同利息${sup(1)}退還予賣方。
+        除本附表第3條另有規定外，如非因賣方犯錯而令物業交易未能完成，則賣方沒有責任向代理支付任何佣金。在此情況下，如賣方已支付佣金，則代理須在切實可行的範圍內盡快（但無論如何不得遲於由買賣協議指明的完成交易日期起計的5個工作日）將佣金${opt("連同利息", d.commission_interest === "連同利息", !!d.commission_interest)}/${opt("不連同利息", d.commission_interest === "不連同利息", !!d.commission_interest)}${sup(1)}退還予賣方。
       </div></div>
       <div class="clause"><div class="n">3.</div><div class="c">
         如買賣雙方非基於物業的買賣協議的條文而共同取消該具約束力的買賣協議，則賣方須向代理支付佣金。
@@ -354,7 +387,7 @@ window.HKREA = (function () {
       <div>按照本協議第9條，就物業所擁有的金錢上的或其他實益的權益${sup(7)}的詳情如下：</div>
       ${d.interest_details
         ? `<div class="fill wide" style="text-align:left; margin-top:6px;">${esc(d.interest_details).replace(/\n/g, "<br>")}</div>`
-        : `<div class="lineblank"></div><div class="lineblank"></div>`}
+        : `${naLine(d.interest_details_na)}${naLine(d.interest_details_na)}`}
 
       <div class="sched-h">附表4 － 註釋</div>
       <div>(1) 指刪去不適用者。所有刪除必須加以簡簽。</div>
@@ -371,63 +404,41 @@ window.HKREA = (function () {
       <div class="sub">(b) 與對物業擁有金錢上的或其他實益的權益的人有合夥關係，或受僱於該人；或</div>
       <div class="sub">(c) 屬於任何關乎物業的安排或協議（不論是否可強制執行）的一方。</div>
       <div>(8) 請於適當的方格內劃上“<span class="cb on" style="vertical-align:-2px;"></span>”號。</div>
-      <div class="pageno">第 2 頁 ‧ 共 2 頁<span class="r">${esc(d.serial_no || "")}</span></div>
+      <div class="pageno">第 2 頁 ‧ 共 2 頁<span class="r">${esc(formatSerial(d.serial_no))}</span></div>
     </div>`;
   }
 
   function render(d) { d = d || {}; return page1(d) + page2(d); }
 
-  /* ---------- 員工（營業員）資料：Supabase `staff` 表，冇表就用本機儲存 ---------- */
-  const LS_KEY = "hkrea_staff";
-  function lsRead(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function lsWrite(rows){ localStorage.setItem(LS_KEY, JSON.stringify(rows)); }
-
+  /* ---------- 員工（營業員）資料：一律存喺 Supabase `staff` 表（全公司共用），唔會存落呢部機 ---------- */
   const staff = {
     async list(sb){
-      try{
-        const { data, error } = await sb.from('staff').select('*').order('name');
-        if (error) throw error;
-        return { rows: data || [], remote: true };
-      }catch(e){
-        return { rows: lsRead(), remote: false, err: e.message };
-      }
+      const { data, error } = await sb.from('staff').select('*').order('name');
+      if (error) return { rows: [], remote: false, err: error.message };
+      return { rows: data || [], remote: true };
     },
     async save(sb, row){
       const payload = {
         name: row.name || null, licence_no: row.licence_no || null,
         phone: row.phone || null, signature: row.signature || null
       };
-      try{
-        let res;
-        if (row.id) res = await sb.from('staff').update(payload).eq('id', row.id).select().single();
-        else        res = await sb.from('staff').insert(payload).select().single();
-        if (res.error) throw res.error;
-        return { row: res.data, remote: true };
-      }catch(e){
-        const rows = lsRead();
-        if (row.id){
-          const i = rows.findIndex(r => String(r.id) === String(row.id));
-          if (i >= 0) rows[i] = Object.assign({}, rows[i], payload, { id: row.id });
-        } else {
-          payload.id = 'loc_' + Date.now();
-          rows.push(payload);
-        }
-        lsWrite(rows);
-        return { row: row.id ? rows.find(r => String(r.id) === String(row.id)) : rows[rows.length - 1], remote: false, err: e.message };
-      }
+      let res;
+      if (row.id) res = await sb.from('staff').update(payload).eq('id', row.id).select().single();
+      else        res = await sb.from('staff').insert(payload).select().single();
+      if (res.error) return { row: null, remote: false, err: res.error.message };
+      return { row: res.data, remote: true };
     },
     async remove(sb, id){
-      try{
-        const { error } = await sb.from('staff').delete().eq('id', id);
-        if (error) throw error;
-        return { remote: true };
-      }catch(e){
-        lsWrite(lsRead().filter(r => String(r.id) !== String(id)));
-        return { remote: false, err: e.message };
-      }
+      const { error } = await sb.from('staff').delete().eq('id', id);
+      if (error) return { remote: false, err: error.message };
+      return { remote: true };
     },
     label(r){ return (r.name || '') + (r.licence_no ? ' ' + r.licence_no : ''); }
   };
 
-  return { render, css: CSS, staff, num2cn: (n,u) => { const v = num2cn(n); return v && u ? v + '元整' : v; }, AGENT_NAME, AGENT_LIC, AGENT_ADDR, AGENT_TEL, AGENT_FAX };
+  return {
+    render, css: CSS, staff, formatSerial, sellerNames,
+    num2cn: (n,u) => { const v = num2cn(n); return v && u ? v + '元整' : v; },
+    AGENT_NAME, AGENT_LIC, AGENT_ADDR, AGENT_TEL, AGENT_FAX
+  };
 })();
