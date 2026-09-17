@@ -38,10 +38,8 @@
     background:none; border:none; font-family:inherit; padding:0; cursor:pointer;}
   .row-actions a.mute, .row-actions button.mute{color:#777;}
   .empty{padding:40px; text-align:center; color:#999;}
-  tr.recent{background:#fff8e6;}
-  tr.recent td{background:transparent;}
   .newtag{display:inline-block; margin-left:6px; font-size:10.5px; background:#8b1a1a; color:#fff;
-    padding:1px 6px; border-radius:10px; vertical-align:1px;}
+    padding:2px 8px; border-radius:20px; vertical-align:1px; font-weight:600;}
   @media (max-width:760px){
     table, thead, tbody, tr, td, th{display:block;}
     thead{display:none;}
@@ -128,7 +126,7 @@
       const shareUrl = `${location.origin}${location.pathname.replace(/[^\/]*$/, '')}sign.html?token=${t}&view=1`;
 
       return `
-        <tr class="${isRecent ? 'recent' : ''}">
+        <tr>
           <td data-l="放盤紀錄">${HKREA.formatSerial(row.serial_no)}${isRecent ? '<span class="newtag">最新</span>' : ''}</td>
           <td data-l="物業地址">${row.property_address || '—'}</td>
           <td data-l="賣方">${(fd.sellers && fd.sellers.filter(Boolean).length ? fd.sellers.filter(Boolean).join('、') : row.seller_name) || '—'}</td>

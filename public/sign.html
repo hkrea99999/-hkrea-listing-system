@@ -261,7 +261,7 @@
     canvas.width = rect.width * devicePixelRatio;
     canvas.height = rect.height * devicePixelRatio;
     ctx.scale(devicePixelRatio, devicePixelRatio);
-    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#8b1a1a';
+    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a3a8c';
 
     function pos(e){
       const r = canvas.getBoundingClientRect();
@@ -315,11 +315,15 @@
       im.complete ? Promise.resolve() : new Promise(r => { im.onload = im.onerror = r; })));
     await new Promise(r => setTimeout(r, 250));
     try{
+    // iOS/Android嘅瀏覽器對單一canvas有面積上限（大概4096×4096），
+    // scale:3 兩頁A4加埋好接近條線，手機度好容易整污糟/斷晒版；手機自動降返scale嚟保平安。
+    const isMobileUA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const pdfScale = isMobileUA ? 2 : 3;
     const blob = await html2pdf().from(stage).set({
       margin: 0,
       filename: `${docData.serial_no}.pdf`,
       image: { type: 'jpeg', quality: 1 },
-      html2canvas: { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false, letterRendering: true, imageTimeout: 15000 },
+      html2canvas: { scale: pdfScale, useCORS: true, backgroundColor: '#ffffff', logging: false, letterRendering: true, imageTimeout: 15000 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: false },
       pagebreak: { mode: ['legacy'] }
     }).outputPdf('blob');
@@ -440,6 +444,18 @@
 
     // 通知返兩位admin賣方已簽署（用Edge Function寄email，寄唔到都唔會影響前面個簽署流程）
     notifyAdminsSigned({ pdf_url: pdfUrl });
+    // 自動備份已簽署PDF去Google Drive（同樣係fire-and-forget，失敗都唔會影響簽署流程）
+    if (pdfUrl) backupToDrive(pdfUrl, `${record.serial_no}.pdf`);
+  }
+
+  function backupToDrive(pdfUrl, filename){
+    try{
+      fetch(`${SUPABASE_URL}/functions/v1/backup-drive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ pdf_url: pdfUrl, filename })
+      }).catch(() => {});
+    }catch(e){ /* 靜靜地忽略，唔阻住簽署流程 */ }
   }
 
   function notifyAdminsSigned(extra){
@@ -499,6 +515,7 @@
         const link = document.getElementById('downloadLink');
         link.href = url; link.style.display = 'inline-block'; link.setAttribute('target','_blank');
         w.textContent = 'PDF已重新生成並上載。';
+        backupToDrive(url, `${record.serial_no}.pdf`);
       }catch(e){
         offerLocalDownload(blob, record.serial_no);
         w.textContent = 'Storage 仍然上載唔到（' + e.message + '），已經準備好本機下載。';
