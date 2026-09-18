@@ -140,6 +140,7 @@
             ${signed
               ? `<a class="mute" href="${row.signed_pdf_url || ('sign.html?token=' + t + '&view=1')}" target="_blank" rel="noopener">PDF</a>
                  <button class="mute" onclick="copyShareLink('${shareUrl}')">複製link</button>
+                 <button class="mute" onclick="shareWhatsapp(${idx}, '${shareUrl.replace(/'/g, "\\'")}')">WhatsApp</button>
                  <button class="mute" onclick="emailPdf(${idx}, '${shareUrl.replace(/'/g, "\\'")}')">Email</button>`
               : `<a href="sign.html?token=${t}">簽署</a>`}
           </td>
@@ -149,6 +150,20 @@
 
   function copyShareLink(url){
     navigator.clipboard.writeText(url).then(() => alert('睇覽link已複製，可以傳俾自己或客人。'));
+  }
+
+  // 開WhatsApp（電腦開Web版、手機開App），已經填好訊息，畀員工揀個客人就send得，
+  // 客人收到嗰個link就有埋PDF，等於幫佢自己都留咗一份backup。
+  function shareWhatsapp(idx, shareUrl){
+    const row = (window.__rows || [])[idx];
+    if (!row) return;
+    const lines = [
+      `你好，呢份係你嘅放盤紀錄 ${HKREA.formatSerial(row.serial_no)}（${row.property_address || ''}）已簽署嘅協議，`,
+      row.signed_pdf_url ? `PDF：${row.signed_pdf_url}` : '',
+      `睇覽link：${shareUrl}`,
+      `請保留呢個link/PDF作為你自己嘅副本，多謝！`
+    ].filter(Boolean);
+    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
   }
 
   // 用 mailto 開啟本機郵件App，將PDF連結（signed_pdf_url）同睇覽link一齊帶去，
