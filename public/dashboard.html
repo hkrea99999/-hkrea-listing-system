@@ -23,8 +23,8 @@
   }
   .btn.secondary{background:#e9e9ea; color:#333;}
   @media (max-width:520px){
-    .btnrow{width:100%;}
-    .btnrow .btn{flex:1 1 0; padding:10px 8px;}
+    .btnrow{width:100%; flex-wrap:wrap;}
+    .btnrow .btn{flex:1 1 calc(50% - 4px); padding:10px 8px;}
   }
   table{width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.05);}
   th, td{padding:12px 14px; text-align:left; font-size:13.5px; border-bottom:1px solid #f0f0f0;}
@@ -59,6 +59,7 @@
     </div>
     <div class="btnrow">
       <a class="btn" href="new-listing.html">＋ 新增放盤</a>
+      <a class="btn secondary" href="flyer.html">傳單編輯器</a>
       <a class="btn secondary" href="new-listing.html#staff">員工資料</a>
       <a class="btn secondary" href="#" onclick="logout();return false;">登出</a>
     </div>
