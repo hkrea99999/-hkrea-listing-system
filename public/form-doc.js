@@ -123,7 +123,7 @@ window.HKREA = (function () {
   .paper{
     --doc-ink:#1a3a8c;
     width:793px; min-height:1122px; background:#fff; color:#111;
-    padding:10mm 12mm 12mm; margin:0 auto; position:relative;
+    padding:11mm 13mm 13mm; margin:0 auto; position:relative;
     font-family:"PingFang HK","Noto Sans HK","Microsoft JhengHei","MingLiU",serif;
     font-size:10.5px; line-height:1.52; letter-spacing:.1px;
     box-shadow:0 2px 18px rgba(0,0,0,.14);
@@ -192,6 +192,13 @@ window.HKREA = (function () {
     font-size:9.5px; color:#666; letter-spacing:.5px;
   }
   .paper .pageno .r{ position:absolute; right:12mm; bottom:0; }
+  .paper .hd-mini{
+    display:flex; align-items:center; gap:8px; padding-bottom:6px; margin-bottom:12px;
+    border-bottom:1px solid #ccc; font-size:9px; color:#777; letter-spacing:.2px;
+  }
+  .paper .hd-mini img{ height:20px; width:auto; display:block; }
+  .paper .hd-mini .t{ flex:1; }
+  .paper .hd-mini .n{ font-weight:700; color:#666; }
   @media print{
     @page{ size:A4 portrait; margin:0; }
     .paper{ box-shadow:none; margin:0 auto; page-break-after:always; break-after:page; }
@@ -329,6 +336,11 @@ window.HKREA = (function () {
 
     return `
     <div class="paper">
+      <div class="hd-mini">
+        <img src="${LOGO}" alt="">
+        <span class="t">出售香港住宅物業用的地產代理協議（表格 3）</span>
+        <span class="n">${esc(formatSerial(d.serial_no))}</span>
+      </div>
       <div class="sigwrap">
         <div class="sigcol">
           <div class="sigrow" style="align-items:flex-end;">
