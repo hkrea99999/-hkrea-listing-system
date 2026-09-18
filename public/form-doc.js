@@ -123,7 +123,7 @@ window.HKREA = (function () {
   .paper{
     --doc-ink:#1a3a8c;
     width:793px; min-height:1122px; background:#fff; color:#111;
-    padding:11mm 13mm 13mm; margin:0 auto; position:relative;
+    padding:10mm 12mm 12mm; margin:0 auto; position:relative;
     font-family:"PingFang HK","Noto Sans HK","Microsoft JhengHei","MingLiU",serif;
     font-size:10.5px; line-height:1.52; letter-spacing:.1px;
     box-shadow:0 2px 18px rgba(0,0,0,.14);
