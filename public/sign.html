@@ -98,7 +98,7 @@
     <div id="viewBar" style="display:none; gap:10px; flex-wrap:wrap; margin-top:14px;">
       <button class="submitBtn" style="width:auto; padding:11px 20px;" onclick="downloadPdf()">下載PDF</button>
       <button class="submitBtn" style="width:auto; padding:11px 20px; background:#eee; color:#333;" onclick="window.print()">列印</button>
-      <a class="submitBtn" style="width:auto; padding:11px 20px; background:#eee; color:#333; text-decoration:none; display:inline-block;" href="dashboard.html">返回紀錄</a>
+      <a class="submitBtn" id="backToDashBtn" style="width:auto; padding:11px 20px; background:#eee; color:#333; text-decoration:none; display:none;" href="dashboard.html">返回紀錄</a>
     </div>
 
     <div class="panel">
@@ -147,6 +147,8 @@
   const token = qs.get('token');
   let sigLen = 0;
   const viewMode = qs.get('view') === '1';
+  const isStaffView = qs.get('staff') === '1'; // 員工由dashboard「檢視」入嚟先顯示「返回紀錄」；分俾客人嘅link唔會有呢個flag
+  if (isStaffView) document.getElementById('backToDashBtn').style.display = 'inline-block';
   let record = null, ctx, drawing = false, last = null, localPdfUrl = null;
 
   function show(id){

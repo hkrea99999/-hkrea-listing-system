@@ -135,7 +135,7 @@
           <td data-l="建立日期">${new Date(row.created_at).toLocaleDateString('zh-HK')}</td>
           <td data-l="最後更新">${fmtDT(row.updated_at || row.created_at)}</td>
           <td class="row-actions">
-            <a href="sign.html?token=${t}&view=1">檢視</a>
+            <a href="sign.html?token=${t}&view=1&staff=1">檢視</a>
             <a href="new-listing.html?serial=${encodeURIComponent(row.serial_no)}">編輯</a>
             ${signed
               ? `<a class="mute" href="${row.signed_pdf_url || ('sign.html?token=' + t + '&view=1')}" target="_blank" rel="noopener">PDF</a>
@@ -158,11 +158,13 @@
     const row = (window.__rows || [])[idx];
     if (!row) return;
     const lines = [
-      `你好，呢份係你嘅放盤紀錄 ${HKREA.formatSerial(row.serial_no)}（${row.property_address || ''}）已簽署嘅協議，`,
-      row.signed_pdf_url ? `PDF：${row.signed_pdf_url}` : '',
-      `睇覽link：${shareUrl}`,
+      `你好，呢份係*${HKREA.formatSerial(row.serial_no)}*（${row.property_address || ''}）已簽署嘅《出售物業代理協議》。`,
+      '',
+      row.signed_pdf_url ? `📄 PDF：${row.signed_pdf_url}` : '',
+      `🔗 睇覽link：${shareUrl}`,
+      '',
       `請保留呢個link/PDF作為你自己嘅副本，多謝！`
-    ].filter(Boolean);
+    ].filter(l => l !== '' || true); // 保留空行做分段
     window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
   }
 
