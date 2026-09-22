@@ -211,7 +211,8 @@
 
   async function init(){
     if (!token){ show('errorState'); return; }
-    const { data, error } = await sb.from('listings').select('*').eq('sign_token', token).single();
+    const { data: rows, error } = await sb.rpc('get_listing_by_token', { p_token: token });
+    const data = rows && rows[0];
     if (error || !data){ show('errorState'); return; }
     record = data;
 
@@ -409,18 +410,13 @@
     }catch(e){ storageErr = e.message; }
 
     const newFd = Object.assign({}, record.form_data || {}, { signature_img: sigData, seller_date: today });
-    const baseUpdate = {
-      status: 'signed',
-      signed_at: new Date().toISOString(),
-      seller_signature_url: sigUrl,
-      signed_pdf_url: pdfUrl,
-      form_data: newFd
-    };
-    // listings 表未有 updated_at 欄嘅話（未行 SQL）就自動退返冇嗰個寫法，唔會累到簽署失敗
-    let upd = await sb.from('listings').update(Object.assign({ updated_at: new Date().toISOString() }, baseUpdate)).eq('sign_token', token);
-    if (upd.error && /updated_at/i.test(upd.error.message || '')){
-      upd = await sb.from('listings').update(baseUpdate).eq('sign_token', token);
-    }
+    // 改用RPC：函數內部會憑token去揾返嗰一行先update，唔係好似之前咁乜row都改得到
+    const upd = await sb.rpc('sign_listing_by_token', {
+      p_token: token,
+      p_seller_signature_url: sigUrl,
+      p_signed_pdf_url: pdfUrl,
+      p_form_data: newFd
+    });
 
     if (upd.error){
       errBox.textContent = '更新記錄失敗：' + upd.error.message;
