@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>香港物業 傳單編輯器</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&family=Oswald:wght@600;700&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --red:#c0212a;
+  --gold:#b8860b;
+  --navy:#1a1a2e;
+
+  /* 編輯器操作介面（工具列/輸入框/掣）用嘅色，跟返放盤紙系統嗰套 —— 淨係用喺呢啲操作元件，唔影響傳單本身設計 */
+  --ui-accent:#8b1a1a;
+  --ui-bar:#8b1a1a;
+  --ui-line:#dcdcdc;
+  --ui-field:#fafafa;
+  --ui-radius:6px;
+  --panel:#f7f6f4;
+  --border:#d0cdc8;
+  --text:#111;
+
+  /* Flyer vars */
+  --hdr-h:110px;
+  --accent:#111111;
+  --price-color:#111111;
+  --rent-price-color:#8b6400;
+  --section-bg:#111111;
+  --section-text:#ffffff;
+  --card-border:#cccccc;
+  --card-bg:#ffffff;
+  --footer-phone-size:2.6rem;
+  --body-font:'Noto Sans TC',sans-serif;
+  --qr-size:70px;
+  --propid-opacity:0.5;
+
+  /* A4 dimensions */
+  --a4-w:794px;
+  --a4-h:1122px;
+}
+
+html, body {
+  font-family:'Noto Sans TC',sans-serif;
+  background:#c8c4bc;
+  min-height:100vh;
+  -webkit-text-size-adjust:100%;
+}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  background:var(--ui-bar);color:#fff;
+  display:flex;align-items:center;gap:6px;
+  padding:6px 10px;position:sticky;top:0;z-index:300;
+  box-shadow:0 2px 10px rgba(0,0,0,.5);flex-wrap:wrap;
+}
+.topbar-title{font-size:.82rem;font-weight:700;color:#f0c9c9;flex:1;white-space:nowrap;min-width:80px;}
+.tbtn{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:5px 10px;border-radius:var(--ui-radius);cursor:pointer;font-family:inherit;font-size:.76rem;white-space:nowrap;transition:.15s;}
+.tbtn.on{background:#fff;border-color:#fff;color:var(--ui-accent);}
+.tbtn:hover:not(.on){border-color:#fff;color:#fff;}
+.btn-print{background:#fff;color:var(--ui-accent);border:none;padding:5px 12px;border-radius:var(--ui-radius);cursor:pointer;font-weight:700;font-size:.76rem;font-family:inherit;white-space:nowrap;}
+.btn-print:hover{background:#f3e6e6;}
+.btn-panel-tog{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:5px 10px;border-radius:var(--ui-radius);cursor:pointer;font-size:.76rem;white-space:nowrap;}
+.btn-panel-tog:hover{border-color:#fff;color:#fff;}
+
+/* ===== WORKSPACE ===== */
+.workspace{display:flex;height:calc(100vh - 42px);}
+
+/* ===== PANEL ===== */
+.panel{
+  width:290px;min-width:290px;background:#fff;
+  border-right:2px solid var(--ui-line);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:width .25s,min-width .25s,opacity .2s;flex-shrink:0;
+}
+.panel.closed{width:0;min-width:0;opacity:0;pointer-events:none;border-right:none;}
+.panel-scroll{flex:1;overflow-y:auto;}
+
+.ph{background:var(--ui-accent);color:#fff;padding:7px 12px;font-size:.7rem;font-weight:700;letter-spacing:.06em;
+  display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.ph::after{content:'▲';font-size:.55rem;transition:transform .2s;}
+.ph.cls::after{transform:rotate(180deg);}
+.sec{overflow:hidden;transition:max-height .25s ease;}
+.sec.cls{max-height:0!important;}
+
+.ps{padding:9px 12px;border-bottom:1px solid #eee;}
+.ps h3{font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
+label{display:block;font-size:.68rem;color:#555;margin-bottom:2px;margin-top:5px;}
+input[type=text],input[type=tel],textarea,select{
+  width:100%;border:1px solid var(--ui-line);border-radius:var(--ui-radius);padding:6px 9px;background:var(--ui-field);
+  font-family:inherit;font-size:.73rem;color:#111;transition:border .15s;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ui-accent);background:#fff;}
+textarea{resize:vertical;min-height:38px;}
+input[type=file]{display:none;}
+input[type=range]{width:100%;accent-color:var(--ui-accent);}
+input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--ui-line);border-radius:var(--ui-radius);cursor:pointer;}
+
+.sr{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.sr input[type=range]{flex:1;}
+.sv{font-size:.65rem;color:var(--ui-accent);font-weight:700;width:44px;text-align:right;flex-shrink:0;}
+.cr{display:flex;align-items:center;gap:7px;margin-top:4px;}
+.cr label{margin:0;flex:1;}
+.xr{display:flex;align-items:center;gap:7px;margin-top:5px;}
+.xr input[type=checkbox]{accent-color:var(--ui-accent);width:14px;height:14px;}
+.xr label{margin:0;font-size:.7rem;}
+
+.ubtn{width:100%;margin-top:5px;background:var(--ui-accent);color:#fff;border:none;padding:7px;border-radius:var(--ui-radius);
+  cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:700;}
+.ubtn:hover{background:#6e1414;}
+
+/* prop list */
+.pi{display:flex;align-items:center;gap:5px;padding:6px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .1s;}
+.pi:hover{background:#fafafa;}
+.pi.sel{background:#fbf2f2;border-left:3px solid var(--ui-accent);padding-left:9px;}
+.pi-info{flex:1;}
+.pi-name{font-weight:700;font-size:.75rem;color:var(--navy);}
+.pi-price{font-size:.68rem;color:var(--red);font-weight:600;}
+.pi-no{font-size:.6rem;color:#bbb;}
+.btn-del{background:none;border:none;color:#ddd;cursor:pointer;font-size:.85rem;padding:2px 5px;}
+.btn-del:hover{color:var(--ui-accent);}
+.btn-mv{background:none;border:none;color:#ccc;cursor:pointer;font-size:.72rem;padding:2px 3px;}
+.btn-mv:hover{color:var(--ui-accent);}
+.add-btn{margin:7px 12px;background:var(--ui-accent);color:#fff;border:none;padding:7px;
+  border-radius:var(--ui-radius);width:calc(100% - 24px);cursor:pointer;font-family:inherit;font-size:.73rem;font-weight:700;}
+.add-btn:hover{background:#6e1414;}
+
+.edit-form{padding:9px 12px;background:#fdf7f7;border-top:2px solid var(--ui-line);display:none;}
+.edit-form.open{display:block;}
+.edit-form h3{font-size:.66rem;color:var(--ui-accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.save-btn{margin-top:7px;background:var(--ui-accent);color:#fff;border:none;padding:7px;border-radius:var(--ui-radius);
+  cursor:pointer;width:100%;font-family:inherit;font-size:.75rem;font-weight:700;}
+.save-btn:hover{background:#6e1414;}
+
+.statusbar{padding:4px 12px;font-size:.63rem;color:#aaa;background:#f8f7f4;border-top:1px solid #eee;text-align:center;}
+.statusbar.ok{color:#2a8a2a;}
+.statusbar.err{color:#c0212a;}
+
+/* ===== PREVIEW WRAP ===== */
+.preview-wrap{
+  flex:1;
+  overflow:auto;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  background:#c0bbb4;
+}
+
+/* ===== FLYER SCALE CONTAINER (mobile zoom) ===== */
+.flyer-scale-wrap {
+  width: var(--a4-w);
+  transform-origin: top center;
+  margin-bottom: 20px;
+}
+
+/* ===== FLYER ===== */
+.flyer{
+  width:var(--a4-w);
+  background:#fff;
+  font-family:var(--body-font);
+  box-shadow:0 4px 30px rgba(0,0,0,.35);
+  overflow:hidden; /* ensure header bleeds to edges */
+}
+
+/* Header / Logo zone — full bleed, no side margins */
+.f-header{
+  width:100%;
+  height:var(--hdr-h);
+  overflow:hidden;
+  position:relative;
+  border-bottom:3px solid var(--accent);
+  display:flex;
+  align-items:stretch;
+  /* NO margin, NO padding on the outer element */
+}
+.f-header-left{
+  flex:1;
+  padding:12px 20px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.f-logo-img{max-height:100%;max-width:100%;object-fit:contain;display:block;}
+.f-logo-placeholder .company-name{font-size:2rem;font-weight:900;color:var(--navy);letter-spacing:.04em;font-family:'Noto Serif TC',serif;}
+.f-logo-placeholder .company-name span{font-size:1.1rem;font-weight:400;color:#555;margin-left:10px;font-family:'Noto Sans TC',sans-serif;}
+.f-logo-placeholder .company-sub{font-size:.7rem;color:#888;margin-top:4px;}
+.f-header-right{
+  padding:10px 20px;
+  text-align:right;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-end;
+  min-width:140px;
+  flex-shrink:0;
+}
+.f-branch{font-size:.75rem;font-weight:700;color:var(--navy);}
+
+/* Section header bar */
+.f-section-bar{
+  background:var(--section-bg);color:var(--section-text);
+  padding:7px 16px;
+  font-size:1rem;font-weight:900;letter-spacing:.12em;
+  margin:0 16px 0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.f-section-bar.mt{margin-top:10px;}
+.f-sec-date{font-size:.6rem;font-weight:400;letter-spacing:0;opacity:.75;}
+
+/* Featured big card */
+.f-featured{margin:0 16px 0;border:1.5px solid var(--card-border);}
+.f-feat-inner{padding:14px 18px;display:flex;gap:16px;align-items:flex-start;}
+.f-feat-left{flex:1;}
+.f-feat-name-zh{font-size:1.9rem;font-weight:900;color:var(--navy);font-family:'Noto Serif TC',serif;line-height:1.1;}
+.f-feat-name-en{font-size:.72rem;color:#666;margin-top:2px;font-weight:400;}
+.f-feat-bullets{margin:8px 0;padding-left:2px;}
+.f-feat-bullets li{font-size:.78rem;color:#333;line-height:1.6;list-style:disc inside;}
+.f-feat-right{text-align:right;flex-shrink:0;min-width:170px;padding-top:6px;}
+.f-feat-market{font-size:.72rem;color:#555;margin-bottom:4px;}
+.f-feat-price{font-size:2.1rem;font-weight:900;color:var(--price-color);font-family:'Oswald',sans-serif;line-height:1;}
+.f-feat-price-unit{font-size:1rem;font-weight:700;}
+.f-feat-divider{border:none;border-top:1px dashed #ccc;margin:6px 0;}
+.f-feat-rent{font-size:.82rem;color:#666;font-weight:500;}
+.f-feat-id{font-size:.6rem;color:#bbb;margin-top:6px;opacity:var(--propid-opacity);}
+
+/* Small grid */
+.f-grid{
+  margin:0 16px 0;
+  display:grid;grid-template-columns:1fr 1fr;
+  border-left:1.5px solid var(--card-border);
+  border-top:1.5px solid var(--card-border);
+}
+.f-card{
+  border-right:1.5px solid var(--card-border);
+  border-bottom:1.5px solid var(--card-border);
+  padding:9px 12px;background:var(--card-bg);
+  cursor:pointer;transition:outline .1s;
+}
+.f-card:hover{outline:2px solid #c8960a;outline-offset:-2px;}
+.f-card.sel-card{outline:2px solid var(--red);outline-offset:-2px;}
+.f-card-title{font-size:.82rem;font-weight:700;color:var(--navy);}
+.f-card-sz{font-size:.65rem;color:#777;margin:2px 0;}
+.f-card-desc{font-size:.68rem;color:#444;line-height:1.5;margin:3px 0;}
+.f-card-price{font-size:.85rem;font-weight:900;color:var(--price-color);}
+.f-card-price.rent{color:var(--rent-price-color);}
+.f-card-id{font-size:.55rem;color:#bbb;margin-top:3px;opacity:var(--propid-opacity);}
+
+/* Prop ID note line */
+.f-id-note{margin:4px 16px 0;font-size:.6rem;color:#888;text-align:right;opacity:var(--propid-opacity);}
+
+/* Footer */
+.f-footer{
+  margin:6px 16px 0;
+  border-top:2px solid var(--accent);
+  padding-top:8px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.f-foot-left{flex:1;}
+.f-foot-invite{font-size:.72rem;font-weight:700;color:#333;margin-bottom:2px;}
+.f-foot-addr{font-size:.63rem;color:#555;line-height:1.5;}
+.f-foot-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.f-foot-call-label{font-size:.68rem;color:#555;text-align:right;}
+.f-foot-phone{font-size:var(--footer-phone-size);font-weight:900;color:var(--navy);font-family:'Oswald',sans-serif;line-height:1;}
+.f-foot-qr{width:var(--qr-size);height:var(--qr-size);border:1.5px solid #ccc;border-radius:3px;
+  overflow:hidden;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.f-foot-qr img{width:100%;height:100%;object-fit:contain;}
+.f-foot-qr-ph{font-size:.5rem;color:#aaa;text-align:center;padding:4px;line-height:1.5;}
+.f-foot-extra{font-size:.68rem;color:#333;font-weight:600;line-height:1.6;text-align:left;}
+.f-foot-pad{padding-bottom:12px;}
+
+/* Rent flyer featured top row */
+.f-rent-feat-grid{
+  margin:0 16px 0;
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  border-left:1.5px solid var(--card-border);
+  border-top:1.5px solid var(--card-border);
+}
+.f-rent-big{
+  border-right:1.5px solid var(--card-border);
+  border-bottom:1.5px solid var(--card-border);
+  padding:10px 12px;cursor:pointer;background:var(--card-bg);transition:outline .1s;
+}
+.f-rent-big:hover{outline:2px solid #c8960a;outline-offset:-2px;}
+.f-rent-big.sel-card{outline:2px solid var(--red);outline-offset:-2px;}
+.rb-zh{font-size:1.3rem;font-weight:900;color:var(--navy);font-family:'Noto Serif TC',serif;}
+.rb-en{font-size:.6rem;color:#666;margin-top:1px;}
+.rb-sz{font-size:.62rem;color:#777;margin-top:2px;}
+.rb-desc{font-size:.67rem;color:#444;line-height:1.45;margin:4px 0;}
+.rb-price-label{font-size:.62rem;color:#555;font-weight:700;}
+.rb-price{font-size:1.55rem;font-weight:900;color:var(--rent-price-color);font-family:'Oswald',sans-serif;line-height:1;}
+.rb-id{font-size:.55rem;color:#bbb;opacity:var(--propid-opacity);}
+
+/* A4 guide line */
+.a4-line{position:absolute;left:0;right:0;top:1122px;border-top:2px dashed #f07030;pointer-events:none;z-index:10;}
+.a4-line-label{position:absolute;right:4px;top:-15px;font-size:.5rem;color:#f07030;font-weight:700;
+  background:#fff;padding:1px 4px;border-radius:2px;border:1px solid #f07030;}
+
+/* ===== PRINT / PDF ===== */
+@media print{
+  @page{
+    size: A4 portrait;
+    margin: 0;
+  }
+  html, body {
+    background: #fff !important;
+    width: 210mm;
+  }
+  .topbar, .panel { display:none !important; }
+  .workspace {
+    display: block;
+    height: auto;
+  }
+  .preview-wrap {
+    padding: 0;
+    background: #fff;
+    overflow: visible;
+    height: auto;
+    display: block;
+    align-items: unset;
+  }
+  .flyer-scale-wrap {
+    transform: none !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .flyer {
+    box-shadow: none;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    page-break-after: always;
+  }
+  .a4-line { display:none !important; }
+  .f-card:hover,.f-card.sel-card,
+  .f-rent-big:hover,.f-rent-big.sel-card { outline:none; }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 900px) {
+  /* hide panel by default on mobile, show via toggle */
+  .panel {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform .25s, opacity .2s;
+    opacity: 0;
+    width: 290px !important;
+    min-width: 290px !important;
+  }
+  .panel.mobile-open {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  .panel.closed {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+    width: 290px !important;
+    min-width: 290px !important;
+    border-right: 2px solid var(--border);
+  }
+  /* overlay when panel open */
+  .panel-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 199;
+  }
+  .panel-overlay.show { display: block; }
+
+  .workspace {
+    height: calc(100vh - 42px);
+  }
+  .preview-wrap {
+    width: 100%;
+    padding: 12px 8px;
+    overflow: auto;
+  }
+  /* Scale flyer to fit viewport */
+  .flyer-scale-wrap {
+    /* JS will set transform scale */
+    transform-origin: top center;
+  }
+  .topbar { gap: 4px; padding: 5px 8px; }
+  .topbar-title { font-size: .72rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🏠 香港物業 傳單編輯器</div>
+  <button class="btn-panel-tog" onclick="togglePanel()">☰ 面板</button>
+  <button class="tbtn on" id="tabSaleBtn" onclick="switchTab('sale')">售盤</button>
+  <button class="tbtn" id="tabRentBtn" onclick="switchTab('rent')">租盤</button>
+  <button class="btn-print" onclick="window.print()">🖨 列印/PDF</button>
+</div>
+
+<!-- Mobile panel overlay -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+
+<div class="workspace">
+
+<!-- ===== PANEL ===== -->
+<div class="panel" id="mainPanel">
+  <div class="panel-scroll">
+
+    <!-- Company -->
+    <div class="ph" id="ph_co" onclick="tog('co')">🏢 公司 &amp; 版面</div>
+    <div class="sec" id="sec_co" style="max-height:4000px">
+      <div class="ps">
+        <h3>公司資料</h3>
+        <label>公司名稱（大字）</label>
+        <input type="text" id="f_coname" value="香港物業" oninput="rr()">
+        <label>英文名稱</label>
+        <input type="text" id="f_coen" value="HONG KONG REAL ESTATE" oninput="rr()">
+        <label>分行名稱</label>
+        <input type="text" id="f_branch" value="銅鑼灣分行" oninput="rr()">
+        <label>廣告日期</label>
+        <input type="text" id="f_date" value="今日焦點推介" oninput="rr()">
+      </div>
+      <div class="ps">
+        <h3>底部聯絡</h3>
+        <label>歡迎放盤/搵盤 WhatsApp 文字</label>
+        <input type="text" id="f_invite" value="歡迎放盤/搵盤 WhatsApp聯絡我地" oninput="rr()">
+        <label>分行地址</label>
+        <input type="text" id="f_addr" value="香港告士打道266號海宮大廈地下3號舖" oninput="rr()">
+        <label>電話/傳真</label>
+        <input type="text" id="f_tel" value="Tel: 2833 1980 | Fax: 2833 2016" oninput="rr()">
+        <label>大字電話</label>
+        <input type="tel" id="f_phone" value="2833 1980" oninput="rr()">
+        <label>右側文字（每行換行）</label>
+        <textarea id="f_footright" rows="3">致電查詢</textarea>
+      </div>
+      <div class="ps">
+        <h3>Logo 圖片</h3>
+        <button class="ubtn" onclick="document.getElementById('logoFile').click()">📷 上載 Logo</button>
+        <input type="file" id="logoFile" accept="image/*" onchange="handleLogo(event)">
+        <label style="margin-top:6px">Header 高度</label>
+        <div class="sr"><input type="range" id="sl_hdr" min="70" max="250" value="110" oninput="setV('--hdr-h',this.value+'px','hdr_v')"><span class="sv" id="hdr_v">110px</span></div>
+      </div>
+      <div class="ps">
+        <h3>QR Code</h3>
+        <button class="ubtn" onclick="document.getElementById('qrFile').click()">📷 上載 QR Code</button>
+        <input type="file" id="qrFile" accept="image/*" onchange="handleQR(event)">
+        <label style="margin-top:6px">QR 大細</label>
+        <div class="sr"><input type="range" id="sl_qr" min="48" max="110" value="70" oninput="setV('--qr-size',this.value+'px','qr_v')"><span class="sv" id="qr_v">70px</span></div>
+      </div>
+      <div class="ps">
+        <h3>顏色</h3>
+        <div class="cr"><label>框線 / 版面強調色</label><input type="color" id="c_accent" value="#111111" oninput="setV('--accent',this.value)"></div>
+        <div class="cr"><label>版塊底色</label><input type="color" id="c_secbg" value="#111111" oninput="setV('--section-bg',this.value)"></div>
+        <div class="cr"><label>版塊文字色</label><input type="color" id="c_sectxt" value="#ffffff" oninput="setV('--section-text',this.value)"></div>
+        <div class="cr"><label>卡片框線</label><input type="color" id="c_cardborder" value="#cccccc" oninput="setV('--card-border',this.value)"></div>
+        <div class="cr"><label>卡片背景</label><input type="color" id="c_cardbg" value="#ffffff" oninput="setV('--card-bg',this.value)"></div>
+      </div>
+      <div class="ps">
+        <h3>字型</h3>
+        <div class="xr"><input type="checkbox" id="chk_serif" onchange="toggleFont(this.checked)"><label for="chk_serif">明體（Noto Serif TC）</label></div>
+      </div>
+      <div class="ps">
+        <h3>大細微調</h3>
+        <label>底部電話大細</label>
+        <div class="sr"><input type="range" id="sl_phone" min="1.5" max="4" step="0.1" value="2.6" oninput="setV('--footer-phone-size',this.value+'rem','phone_v')"><span class="sv" id="phone_v">2.6rem</span></div>
+        <label>物業編號透明度</label>
+        <div class="sr"><input type="range" id="sl_pid" min="0" max="1" step="0.05" value="0.5" oninput="setV('--propid-opacity',this.value,'pid_v',v=>Math.round(v*100)+'%')"><span class="sv" id="pid_v">50%</span></div>
+      </div>
+    </div>
+
+    <!-- Sale Featured -->
+    <div class="ph" id="ph_sfeat" onclick="tog('sfeat')">⭐ 售盤焦點物業</div>
+    <div class="sec" id="sec_sfeat" style="max-height:4000px">
+      <div class="ps">
+        <h3>焦點大卡</h3>
+        <label>版塊標題</label>
+        <input type="text" id="f_sbar" value="今日焦點推介 · HOT PROPERTIES" oninput="rr()">
+        <label>大廈名稱（中文）</label>
+        <input type="text" id="sf_zh" value="唐寧大廈 (高層優質戶)" oninput="rr()">
+        <label>大廈名稱（英文）</label>
+        <input type="text" id="sf_en" value="Towning Mansion" oninput="rr()">
+        <label>面積（實用）</label>
+        <input type="text" id="sf_sn" value="1112" oninput="rr()">
+        <label>面積（建築）</label>
+        <input type="text" id="sf_sg" value="1300" oninput="rr()">
+        <label>重點（每行一條）</label>
+        <textarea id="sf_bullets" rows="3">4房 2廳 1廁 連工人房
+靚裝修，廳大房大，極高實用率</textarea>
+        <label>市場評語</label>
+        <input type="text" id="sf_market" value="市場罕有放售" oninput="rr()">
+        <label>售價（萬）</label>
+        <input type="text" id="sf_price" value="1,280" oninput="rr()">
+        <label>月租（如適用）</label>
+        <input type="text" id="sf_rent" value="34,000" oninput="rr()">
+        <label>物業編號</label>
+        <input type="text" id="sf_id" value="033212" oninput="rr()">
+        <label>售價顏色</label>
+        <div class="cr"><input type="color" id="c_saleprice" value="#111111" oninput="setV('--price-color',this.value)"></div>
+      </div>
+      <div class="ps">
+        <h3>精選小格標題</h3>
+        <input type="text" id="f_smore" value="更多同屋苑及商舖精選 (唐寧大廈系列)" oninput="rr()">
+      </div>
+    </div>
+
+    <!-- Sale small props -->
+    <div class="ph" id="ph_sprops" onclick="tog('sprops')">📋 售盤小格列表</div>
+    <div class="sec" id="sec_sprops" style="max-height:4000px">
+      <button class="add-btn" onclick="addProp('sale')">＋ 新增售盤</button>
+      <div id="saleList"></div>
+      <div class="edit-form" id="saleEditForm">
+        <h3>✏️ 編輯售盤</h3>
+        <label>大廈名稱（中文）</label>
+        <input type="text" id="se_zh">
+        <label>大廈名稱（英文）</label>
+        <input type="text" id="se_en">
+        <div class="fr2">
+          <div><label>實用面積(呎)</label><input type="text" id="se_sn"></div>
+          <div><label>建築面積(呎)</label><input type="text" id="se_sg"></div>
+        </div>
+        <label>特點描述</label>
+        <textarea id="se_desc" rows="2"></textarea>
+        <label>售價（萬）</label>
+        <input type="text" id="se_price">
+        <label>物業編號</label>
+        <input type="text" id="se_id">
+        <button class="save-btn" onclick="saveProp('sale')">✓ 儲存</button>
+      </div>
+    </div>
+
+    <!-- Rent Featured -->
+    <div class="ph" id="ph_rfeat" onclick="tog('rfeat')">⭐ 租盤焦點（3大卡）</div>
+    <div class="sec" id="sec_rfeat" style="max-height:4000px">
+      <div class="ps">
+        <h3>版塊標題</h3>
+        <input type="text" id="f_rbar" value="今日租盤精選 · HOT RENTALS" oninput="rr()">
+        <label>租盤價格顏色</label>
+        <div class="cr"><input type="color" id="c_rentprice" value="#8b6400" oninput="setV('--rent-price-color',this.value)"></div>
+      </div>
+      <div id="rentFeatList"></div>
+      <button class="add-btn" onclick="addFeatRent()">＋ 新增焦點租盤（最多3個）</button>
+      <div class="edit-form" id="rfeatEditForm">
+        <h3>✏️ 編輯焦點租盤</h3>
+        <label>大廈名稱（中文）</label><input type="text" id="rfe_zh">
+        <label>大廈名稱（英文）</label><input type="text" id="rfe_en">
+        <div class="fr2">
+          <div><label>實用面積</label><input type="text" id="rfe_sn"></div>
+          <div><label>建築面積</label><input type="text" id="rfe_sg"></div>
+        </div>
+        <label>描述</label><textarea id="rfe_desc" rows="2"></textarea>
+        <label>月租（HKD）</label><input type="text" id="rfe_price">
+        <label>物業編號</label><input type="text" id="rfe_id">
+        <button class="save-btn" onclick="saveFeatRent()">✓ 儲存</button>
+      </div>
+    </div>
+
+    <!-- Rent small props -->
+    <div class="ph" id="ph_rprops" onclick="tog('rprops')">📋 租盤小格列表</div>
+    <div class="sec" id="sec_rprops" style="max-height:4000px">
+      <button class="add-btn" onclick="addProp('rent')">＋ 新增租盤</button>
+      <div id="rentList"></div>
+      <div class="edit-form" id="rentEditForm">
+        <h3>✏️ 編輯租盤</h3>
+        <label>大廈名稱（中文）</label><input type="text" id="re_zh">
+        <label>大廈名稱（英文）</label><input type="text" id="re_en">
+        <div class="fr2">
+          <div><label>實用面積</label><input type="text" id="re_sn"></div>
+          <div><label>建築面積</label><input type="text" id="re_sg"></div>
+        </div>
+        <label>特點描述</label><textarea id="re_desc" rows="2"></textarea>
+        <label>月租（HKD）</label><input type="text" id="re_price">
+        <label>物業編號</label><input type="text" id="re_id">
+        <button class="save-btn" onclick="saveProp('rent')">✓ 儲存</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="statusbar" id="sb">就緒</div>
+</div>
+
+<!-- ===== PREVIEW ===== -->
+<div class="preview-wrap" id="previewWrap"></div>
+</div>
+
+<script>
+let tab = 'sale';
+let panelOpen = true;
+let isMobile = window.innerWidth <= 900;
+let selSale = -1, selRent = -1, selRFeat = -1;
+let logoUrl = null, qrUrl = null;
+
+const g = id => document.getElementById(id);
+const v = id => g(id).value;
+
+function setV(prop, val, labelId, fmt) {
+  document.documentElement.style.setProperty(prop, val);
+  if (labelId) g(labelId).textContent = fmt ? fmt(parseFloat(val)) : val;
+  applyScale();
+}
+
+// ===== PANEL TOGGLE (desktop + mobile) =====
+function togglePanel() {
+  if (window.innerWidth <= 900) {
+    // mobile: slide-in drawer
+    const panel = g('mainPanel');
+    const overlay = g('panelOverlay');
+    const isOpen = panel.classList.contains('mobile-open');
+    if (isOpen) {
+      panel.classList.remove('mobile-open');
+      overlay.classList.remove('show');
+    } else {
+      panel.classList.remove('closed');
+      panel.classList.add('mobile-open');
+      overlay.classList.add('show');
+    }
+  } else {
+    panelOpen = !panelOpen;
+    g('mainPanel').classList.toggle('closed', !panelOpen);
+    setTimeout(applyScale, 280);
+  }
+}
+
+function closePanel() {
+  g('mainPanel').classList.remove('mobile-open');
+  g('panelOverlay').classList.remove('show');
+}
+
+function switchTab(t) {
+  tab = t;
+  g('tabSaleBtn').className = 'tbtn' + (t === 'sale' ? ' on' : '');
+  g('tabRentBtn').className = 'tbtn' + (t === 'rent' ? ' on' : '');
+  render();
+}
+function tog(name) {
+  const b = g('sec_' + name), h = g('ph_' + name);
+  const c = b.classList.toggle('cls');
+  h.classList.toggle('cls', c);
+  if (!c) b.style.maxHeight = '4000px';
+}
+
+function handleLogo(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = ev => { logoUrl = ev.target.result; render(); }; r.readAsDataURL(f);
+}
+function handleQR(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = ev => { qrUrl = ev.target.result; render(); }; r.readAsDataURL(f);
+}
+function toggleFont(serif) {
+  setV('--body-font', serif ? "'Noto Serif TC', serif" : "'Noto Sans TC', sans-serif");
+  render();
+}
+
+// ===== SCALE FLYER TO FIT =====
+function applyScale() {
+  const wrap = g('previewWrap');
+  const scaleEl = wrap.querySelector('.flyer-scale-wrap');
+  if (!scaleEl) return;
+
+  const a4W = 794; // px
+  // available width = preview wrap width minus padding
+  const availW = wrap.clientWidth - 32; // 16px padding each side
+  if (availW < a4W) {
+    const scale = availW / a4W;
+    scaleEl.style.transform = `scale(${scale})`;
+    scaleEl.style.marginBottom = `${-(a4W * (1 - scale) * 0.5)}px`; // rough height correction
+    // set outer container height so it doesn't overlap
+    const flyer = scaleEl.querySelector('.flyer');
+    if (flyer) {
+      const scaledH = flyer.offsetHeight * scale;
+      scaleEl.style.height = scaledH + 'px';
+    }
+  } else {
+    scaleEl.style.transform = '';
+    scaleEl.style.marginBottom = '20px';
+    scaleEl.style.height = '';
+  }
+}
+
+// ---- DATA ----
+let saleProps = [
+  { zh: '開放式1樓舖 (A)', en: '', sn: '1112', sg: '1300', desc: '面積: 實1112呎 / 建1300呎\n特點: 有廁、大廈有電梯、地段優越', price: '1,250', id: '033212' },
+  { zh: '開放式1樓舖 (B)', en: '', sn: '1112', sg: '1300', desc: '面積: 實1112呎 / 建1300呎\n特點: 開揚優質、人流暢旺、交通便利', price: '1,250', id: '033212' },
+  { zh: '唐寧大廈 精選低層', en: '', sn: '', sg: '', desc: '結構: 4房2廳連工人房\n特點: 實用率高、合家庭大戶、尊貴首選', price: '1,250', id: '033212' },
+  { zh: '唐寧大廈 投資首選舖', en: '', sn: '', sg: '', desc: '結構: 開放式設計附洗手間\n特點: 配備電梯、升值潛力厚、連優質租約', price: '1,250', id: '033212' },
+];
+let rentFeatProps = [
+  { zh: '海威大廈', en: 'MARCO POLO MANSION', sn: '860', sg: '1000', desc: '4房2廳1廁連工人房 靚裝\n廳大房大', price: '34,000', id: '030794' },
+  { zh: '置安大廈', en: 'CHEE ON BUILDING', sn: '555', sg: '650', desc: '2房1廳1廁 靚裝 海景', price: '27,000', id: '032206' },
+  { zh: '海殿大廈', en: 'HOI DEEN COURT', sn: '624', sg: '800', desc: '1房1廳 有海景\n開放式廚房', price: '25,000', id: '033871' },
+];
+let rentProps = [
+  { zh: '百德大廈', en: 'PATERSON BUILDING', sn: '498', sg: '600', desc: '2房1廳 靚裝修 開放式廚房', price: '19,500', id: '033711' },
+  { zh: '怡安大廈', en: 'YEE ON BUILDING', sn: '465', sg: '550', desc: '2房1廳 有裝 SOGO旁\n實用間隔', price: '18,000', id: '033786' },
+  { zh: '樂聲大廈', en: 'LOK SING CENTRE', sn: '343', sg: '500', desc: '2房1廳 光猛\n臨近名校 維園旁', price: '16,000', id: '033816' },
+  { zh: '珠城大廈', en: 'PEARL CITY MANSION', sn: '470', sg: '580', desc: '2房1廳 高層 開揚 全海景\n百德新街DONKI旁', price: '25,000', id: '033985' },
+];
+
+// ---- BUILD SALE FLYER ----
+function buildSaleFlyer() {
+  const flyer = document.createElement('div');
+  flyer.className = 'flyer';
+  flyer.style.position = 'relative';
+
+  flyer.appendChild(buildHeader());
+
+  const sb = document.createElement('div');
+  sb.className = 'f-section-bar mt';
+  const slbl = document.createElement('span');
+  slbl.contentEditable = true; slbl.textContent = v('f_sbar');
+  slbl.oninput = e => g('f_sbar').value = e.target.textContent;
+  const sdate = document.createElement('span');
+  sdate.className = 'f-sec-date'; sdate.contentEditable = true;
+  sdate.textContent = v('f_date');
+  sdate.oninput = e => g('f_date').value = e.target.textContent;
+  sb.appendChild(slbl); sb.appendChild(sdate);
+  flyer.appendChild(sb);
+
+  const feat = document.createElement('div');
+  feat.className = 'f-featured';
+  const fi = document.createElement('div');
+  fi.className = 'f-feat-inner';
+  const fl = document.createElement('div');
+  fl.className = 'f-feat-left';
+  const nameZh = document.createElement('div');
+  nameZh.className = 'f-feat-name-zh'; nameZh.contentEditable = true;
+  nameZh.textContent = v('sf_zh'); nameZh.oninput = e => g('sf_zh').value = e.target.textContent;
+  const nameEn = document.createElement('div');
+  nameEn.className = 'f-feat-name-en'; nameEn.contentEditable = true;
+  nameEn.textContent = v('sf_en'); nameEn.oninput = e => g('sf_en').value = e.target.textContent;
+  const sz = document.createElement('div');
+  sz.style.cssText = 'font-size:.68rem;color:#888;margin-top:2px;';
+  if (v('sf_sn') || v('sf_sg')) sz.textContent = `實用: ${v('sf_sn')}呎 | 建築: ${v('sf_sg')}呎`;
+  const ul = document.createElement('ul');
+  ul.className = 'f-feat-bullets';
+  v('sf_bullets').split('\n').filter(l=>l.trim()).forEach(b => {
+    const li = document.createElement('li'); li.textContent = b; ul.appendChild(li);
+  });
+  fl.appendChild(nameZh); fl.appendChild(nameEn); fl.appendChild(sz); fl.appendChild(ul);
+
+  const fr = document.createElement('div');
+  fr.className = 'f-feat-right';
+  const mkt = document.createElement('div'); mkt.className = 'f-feat-market';
+  mkt.contentEditable = true; mkt.textContent = v('sf_market');
+  mkt.oninput = e => g('sf_market').value = e.target.textContent;
+  const priceEl = document.createElement('div'); priceEl.className = 'f-feat-price';
+  priceEl.contentEditable = true;
+  priceEl.innerHTML = `$${v('sf_price')}<span class="f-feat-price-unit"> 萬</span>`;
+  const hr = document.createElement('hr'); hr.className = 'f-feat-divider';
+  const rentEl = document.createElement('div'); rentEl.className = 'f-feat-rent';
+  if (v('sf_rent')) rentEl.textContent = `租 $${v('sf_rent')}`;
+  const idEl = document.createElement('div'); idEl.className = 'f-feat-id';
+  idEl.textContent = `物業編號: ${v('sf_id')}`;
+  fr.appendChild(mkt); fr.appendChild(priceEl); fr.appendChild(hr); fr.appendChild(rentEl); fr.appendChild(idEl);
+  fi.appendChild(fl); fi.appendChild(fr);
+  feat.appendChild(fi);
+  flyer.appendChild(feat);
+
+  const sb2 = document.createElement('div');
+  sb2.className = 'f-section-bar mt';
+  const slbl2 = document.createElement('span');
+  slbl2.contentEditable = true; slbl2.textContent = v('f_smore');
+  slbl2.oninput = e => g('f_smore').value = e.target.textContent;
+  sb2.appendChild(slbl2);
+  flyer.appendChild(sb2);
+
+  const grid = document.createElement('div');
+  grid.className = 'f-grid';
+  grid.style.marginTop = '0';
+  saleProps.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'f-card' + (i === selSale ? ' sel-card' : '');
+    const szL = p.sn ? `面積: 實${p.sn}呎${p.sg?' / 建'+p.sg+'呎':''}` : '';
+    card.innerHTML = `
+      <div class="f-card-title">${p.zh}</div>
+      ${szL ? `<div class="f-card-sz">${szL}</div>` : ''}
+      <div class="f-card-desc">${(p.desc||'').replace(/\n/g,'<br>')}</div>
+      <div class="f-card-price">售 $${p.price} 萬</div>
+      <div class="f-card-id">物業編號: ${p.id}</div>`;
+    card.onclick = () => selectPropCard('sale', i);
+    grid.appendChild(card);
+  });
+  flyer.appendChild(grid);
+
+  const ids = [...new Set(saleProps.map(p=>p.id).filter(Boolean))];
+  if (ids.length) {
+    const note = document.createElement('div'); note.className = 'f-id-note';
+    note.textContent = `*以上物業編號均為: ${ids.join(', ')} 詳情請向分行職員查詢`;
+    flyer.appendChild(note);
+  }
+
+  flyer.appendChild(buildFooter());
+  flyer.appendChild(buildA4Line());
+  return flyer;
+}
+
+// ---- BUILD RENT FLYER ----
+function buildRentFlyer() {
+  const flyer = document.createElement('div');
+  flyer.className = 'flyer';
+  flyer.style.position = 'relative';
+
+  flyer.appendChild(buildHeader());
+
+  const sb = document.createElement('div');
+  sb.className = 'f-section-bar mt';
+  const slbl = document.createElement('span');
+  slbl.contentEditable = true; slbl.textContent = v('f_rbar');
+  slbl.oninput = e => g('f_rbar').value = e.target.textContent;
+  const sdate = document.createElement('span');
+  sdate.className = 'f-sec-date'; sdate.contentEditable = true;
+  sdate.textContent = v('f_date');
+  sb.appendChild(slbl); sb.appendChild(sdate);
+  flyer.appendChild(sb);
+
+  if (rentFeatProps.length > 0) {
+    const fg = document.createElement('div');
+    fg.className = 'f-rent-feat-grid';
+    rentFeatProps.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'f-rent-big' + (i === selRFeat ? ' sel-card' : '');
+      const szL = p.sn ? `N:${p.sn}呎${p.sg?' G:'+p.sg+'呎':''}` : '';
+      card.innerHTML = `
+        <div class="rb-zh">${p.zh}</div>
+        <div class="rb-en">${p.en}</div>
+        ${szL ? `<div class="rb-sz">${szL}</div>` : ''}
+        <div class="rb-desc">${(p.desc||'').replace(/\n/g,'<br>')}</div>
+        <div class="rb-price-label">租</div>
+        <div class="rb-price">$${p.price}</div>
+        <div class="rb-id">物業編號 ${p.id}</div>`;
+      card.onclick = () => selectRFeat(i);
+      fg.appendChild(card);
+    });
+    flyer.appendChild(fg);
+  }
+
+  if (rentProps.length > 0) {
+    const grid = document.createElement('div');
+    grid.className = 'f-grid';
+    grid.style.cssText = 'margin-top:0;border-left:1.5px solid var(--card-border);border-top:1.5px solid var(--card-border);margin:0 16px;';
+    rentProps.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'f-card' + (i === selRent ? ' sel-card' : '');
+      const szL = p.sn ? `N:${p.sn}呎${p.sg?' G:'+p.sg+'呎':''}` : '';
+      card.innerHTML = `
+        <div class="f-card-title">${p.zh}</div>
+        ${szL ? `<div class="f-card-sz">${szL}</div>` : ''}
+        <div class="f-card-desc">${(p.desc||'').replace(/\n/g,'<br>')}</div>
+        <div class="f-card-price rent">租 $${p.price}</div>
+        <div class="f-card-id">物業編號: ${p.id}</div>`;
+      card.onclick = () => selectPropCard('rent', i);
+      grid.appendChild(card);
+    });
+    flyer.appendChild(grid);
+  }
+
+  flyer.appendChild(buildFooter());
+  flyer.appendChild(buildA4Line());
+  return flyer;
+}
+
+// ---- BUILD HEADER (full bleed, no license) ----
+function buildHeader() {
+  const hdr = document.createElement('div');
+  hdr.className = 'f-header';
+
+  const left = document.createElement('div');
+  left.className = 'f-header-left';
+
+  if (logoUrl) {
+    const img = document.createElement('img');
+    img.className = 'f-logo-img';
+    img.src = logoUrl;
+    left.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'f-logo-placeholder';
+    const cn = document.createElement('div');
+    cn.className = 'company-name';
+    cn.innerHTML = `${v('f_coname')} <span>${v('f_coen')}</span>`;
+    ph.appendChild(cn);
+    left.appendChild(ph);
+  }
+
+  const right = document.createElement('div');
+  right.className = 'f-header-right';
+  const br = document.createElement('div');
+  br.className = 'f-branch'; br.contentEditable = true;
+  br.textContent = v('f_branch');
+  br.oninput = e => g('f_branch').value = e.target.textContent;
+  // 牌照行已移除
+  right.appendChild(br);
+
+  hdr.appendChild(left); hdr.appendChild(right);
+  return hdr;
+}
+
+function buildFooter() {
+  const wrap = document.createElement('div');
+  wrap.className = 'f-foot-pad';
+
+  const footer = document.createElement('div');
+  footer.className = 'f-footer';
+
+  const left = document.createElement('div');
+  left.className = 'f-foot-left';
+  const inv = document.createElement('div');
+  inv.className = 'f-foot-invite'; inv.contentEditable = true;
+  inv.textContent = v('f_invite');
+  inv.oninput = e => g('f_invite').value = e.target.textContent;
+  const addr = document.createElement('div');
+  addr.className = 'f-foot-addr';
+  addr.innerHTML = `分行地址: ${v('f_addr')}<br>${v('f_tel')}`;
+  left.appendChild(inv); left.appendChild(addr);
+
+  const right = document.createElement('div');
+  right.className = 'f-foot-right';
+
+  const qrBox = document.createElement('div');
+  qrBox.className = 'f-foot-qr';
+  if (qrUrl) {
+    const qi = document.createElement('img'); qi.src = qrUrl; qrBox.appendChild(qi);
+  } else {
+    const qph = document.createElement('div'); qph.className = 'f-foot-qr-ph';
+    qph.innerHTML = '📱<br>QR Code'; qrBox.appendChild(qph);
+  }
+
+  const callBlock = document.createElement('div');
+  callBlock.style.textAlign = 'right';
+  const callLabel = document.createElement('div');
+  callLabel.className = 'f-foot-call-label';
+  const frLines = v('f_footright').split('\n');
+  callLabel.textContent = frLines[0] || '致電查詢';
+  const phoneEl = document.createElement('div');
+  phoneEl.className = 'f-foot-phone'; phoneEl.contentEditable = true;
+  phoneEl.textContent = v('f_phone');
+  phoneEl.oninput = e => g('f_phone').value = e.target.textContent;
+  callBlock.appendChild(callLabel); callBlock.appendChild(phoneEl);
+
+  right.appendChild(qrBox); right.appendChild(callBlock);
+  footer.appendChild(left); footer.appendChild(right);
+  wrap.appendChild(footer);
+  return wrap;
+}
+
+function buildA4Line() {
+  const d = document.createElement('div'); d.className = 'a4-line';
+  const l = document.createElement('div'); l.className = 'a4-line-label';
+  l.textContent = '▲ A4 底部'; d.appendChild(l);
+  return d;
+}
+
+// ---- PROP MANAGEMENT ----
+function selectPropCard(type, i) {
+  if (type === 'sale') {
+    selSale = i;
+    const p = saleProps[i];
+    g('se_zh').value = p.zh; g('se_en').value = p.en;
+    g('se_sn').value = p.sn; g('se_sg').value = p.sg;
+    g('se_desc').value = p.desc; g('se_price').value = p.price;
+    g('se_id').value = p.id;
+    g('saleEditForm').classList.add('open');
+    g('saleEditForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    selRent = i;
+    const p = rentProps[i];
+    g('re_zh').value = p.zh; g('re_en').value = p.en;
+    g('re_sn').value = p.sn; g('re_sg').value = p.sg;
+    g('re_desc').value = p.desc; g('re_price').value = p.price;
+    g('re_id').value = p.id;
+    g('rentEditForm').classList.add('open');
+    g('rentEditForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  render();
+}
+
+function selectRFeat(i) {
+  selRFeat = i;
+  const p = rentFeatProps[i];
+  g('rfe_zh').value = p.zh; g('rfe_en').value = p.en;
+  g('rfe_sn').value = p.sn; g('rfe_sg').value = p.sg;
+  g('rfe_desc').value = p.desc; g('rfe_price').value = p.price;
+  g('rfe_id').value = p.id;
+  g('rfeatEditForm').classList.add('open');
+  g('rfeatEditForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  render();
+}
+
+function saveProp(type) {
+  const obj = type === 'sale' ? {
+    zh: v('se_zh'), en: v('se_en'), sn: v('se_sn'), sg: v('se_sg'),
+    desc: v('se_desc'), price: v('se_price'), id: v('se_id')
+  } : {
+    zh: v('re_zh'), en: v('re_en'), sn: v('re_sn'), sg: v('re_sg'),
+    desc: v('re_desc'), price: v('re_price'), id: v('re_id')
+  };
+  const arr = type === 'sale' ? saleProps : rentProps;
+  const sel = type === 'sale' ? selSale : selRent;
+  if (sel >= 0 && sel < arr.length) arr[sel] = obj;
+  render(); setStatus('已儲存 ✓', 'ok');
+}
+
+function saveFeatRent() {
+  const obj = { zh: v('rfe_zh'), en: v('rfe_en'), sn: v('rfe_sn'), sg: v('rfe_sg'),
+    desc: v('rfe_desc'), price: v('rfe_price'), id: v('rfe_id') };
+  if (selRFeat >= 0 && selRFeat < rentFeatProps.length) rentFeatProps[selRFeat] = obj;
+  render(); setStatus('已儲存 ✓', 'ok');
+}
+
+function addProp(type) {
+  const p = { zh: '新物業', en: '', sn: '', sg: '', desc: '', price: '', id: '' };
+  if (type === 'sale') { saleProps.push(p); selSale = saleProps.length - 1; }
+  else { rentProps.push(p); selRent = rentProps.length - 1; }
+  selectPropCard(type, type === 'sale' ? selSale : selRent);
+}
+
+function addFeatRent() {
+  if (rentFeatProps.length >= 3) { alert('焦點租盤最多3個'); return; }
+  rentFeatProps.push({ zh: '新物業', en: '', sn: '', sg: '', desc: '', price: '', id: '' });
+  selRFeat = rentFeatProps.length - 1;
+  selectRFeat(selRFeat);
+}
+
+function renderList(arr, containerId, type) {
+  const el = g(containerId); el.innerHTML = '';
+  arr.forEach((p, i) => {
+    const d = document.createElement('div');
+    const sel = type === 'sale' ? selSale : (type === 'rfeat' ? selRFeat : selRent);
+    d.className = 'pi' + (i === sel ? ' sel' : '');
+    d.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <button class="btn-mv" onclick="mvp('${type}',${i},-1,event)">▲</button>
+        <button class="btn-mv" onclick="mvp('${type}',${i},1,event)">▼</button>
+      </div>
+      <div class="pi-info" onclick="${type==='rfeat'?'selectRFeat':'selectPropCard'}(${type==='rfeat'?i:"'"+type+"',"+i})">
+        <div class="pi-name">${p.zh||'(未命名)'}</div>
+        <div class="pi-price">${p.price||'-'}</div>
+        <div class="pi-no">#${p.id||''}</div>
+      </div>
+      <button class="btn-del" onclick="delp('${type}',${i},event)">✕</button>`;
+    el.appendChild(d);
+  });
+}
+
+function mvp(type, i, dir, e) {
+  e.stopPropagation();
+  const arr = type==='sale'?saleProps:(type==='rfeat'?rentFeatProps:rentProps);
+  const ni = i + dir;
+  if (ni < 0 || ni >= arr.length) return;
+  [arr[i], arr[ni]] = [arr[ni], arr[i]];
+  if (type==='sale') { if(selSale===i)selSale=ni; else if(selSale===ni)selSale=i; }
+  else if (type==='rfeat') { if(selRFeat===i)selRFeat=ni; else if(selRFeat===ni)selRFeat=i; }
+  else { if(selRent===i)selRent=ni; else if(selRent===ni)selRent=i; }
+  render();
+}
+
+function delp(type, i, e) {
+  e.stopPropagation();
+  if (!confirm('確定刪除？')) return;
+  const arr = type==='sale'?saleProps:(type==='rfeat'?rentFeatProps:rentProps);
+  arr.splice(i, 1);
+  if (type==='sale') { if(selSale===i){selSale=-1;g('saleEditForm').classList.remove('open');}else if(selSale>i)selSale--; }
+  else if (type==='rfeat') { if(selRFeat===i){selRFeat=-1;g('rfeatEditForm').classList.remove('open');}else if(selRFeat>i)selRFeat--; }
+  else { if(selRent===i){selRent=-1;g('rentEditForm').classList.remove('open');}else if(selRent>i)selRent--; }
+  render();
+}
+
+function setStatus(msg, cls) {
+  const el = g('sb'); el.textContent = msg; el.className = 'statusbar ' + (cls || '');
+  setTimeout(() => { el.textContent = '就緒'; el.className = 'statusbar'; }, 2000);
+}
+
+function rr() { render(); }
+
+function render() {
+  renderList(saleProps, 'saleList', 'sale');
+  renderList(rentFeatProps, 'rentFeatList', 'rfeat');
+  renderList(rentProps, 'rentList', 'rent');
+  const wrap = g('previewWrap');
+  wrap.innerHTML = '';
+  // wrap in scale container
+  const scaleWrap = document.createElement('div');
+  scaleWrap.className = 'flyer-scale-wrap';
+  scaleWrap.appendChild(tab === 'sale' ? buildSaleFlyer() : buildRentFlyer());
+  wrap.appendChild(scaleWrap);
+  // apply scale after DOM paint
+  requestAnimationFrame(() => applyScale());
+}
+
+// Re-scale on window resize
+window.addEventListener('resize', () => {
+  isMobile = window.innerWidth <= 900;
+  applyScale();
+});
+
+// input listeners
+document.querySelectorAll('input[type=text],input[type=tel],textarea').forEach(el => {
+  if (!el.oninput) el.addEventListener('input', rr);
+});
+
+render();
+</script>
+</body>
+</html>
