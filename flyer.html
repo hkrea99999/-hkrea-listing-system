@@ -71,7 +71,7 @@ html, body {
 
 /* ===== PANEL ===== */
 .panel{
-  width:290px;min-width:290px;background:#fff;
+  width:310px;min-width:310px;background:#fff;
   border-right:2px solid var(--ui-line);
   display:flex;flex-direction:column;overflow:hidden;
   transition:width .25s,min-width .25s,opacity .2s;flex-shrink:0;
@@ -79,19 +79,19 @@ html, body {
 .panel.closed{width:0;min-width:0;opacity:0;pointer-events:none;border-right:none;}
 .panel-scroll{flex:1;overflow-y:auto;}
 
-.ph{background:var(--ui-accent);color:#fff;padding:7px 12px;font-size:.7rem;font-weight:700;letter-spacing:.06em;
+.ph{background:var(--ui-accent);color:#fff;padding:10px 12px;font-size:.78rem;font-weight:700;letter-spacing:.03em;
   display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .ph::after{content:'▲';font-size:.55rem;transition:transform .2s;}
 .ph.cls::after{transform:rotate(180deg);}
 .sec{overflow:hidden;transition:max-height .25s ease;}
 .sec.cls{max-height:0!important;}
 
-.ps{padding:9px 12px;border-bottom:1px solid #eee;}
-.ps h3{font-size:.62rem;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
-label{display:block;font-size:.68rem;color:#555;margin-bottom:2px;margin-top:5px;}
+.ps{padding:12px 12px 14px;border-bottom:1px solid #eee;}
+.ps h3{font-size:.68rem;color:#8a8a8a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;font-weight:700;}
+label{display:block;font-size:.74rem;color:#444;font-weight:600;margin-bottom:3px;margin-top:9px;}
 input[type=text],input[type=tel],textarea,select{
-  width:100%;border:1px solid var(--ui-line);border-radius:var(--ui-radius);padding:6px 9px;background:var(--ui-field);
-  font-family:inherit;font-size:.73rem;color:#111;transition:border .15s;
+  width:100%;border:1px solid var(--ui-line);border-radius:var(--ui-radius);padding:8px 10px;background:var(--ui-field);
+  font-family:inherit;font-size:.8rem;color:#111;transition:border .15s;line-height:1.4;
 }
 input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ui-accent);background:#fff;}
 textarea{resize:vertical;min-height:38px;}
@@ -352,8 +352,8 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
     transform: translateX(-100%);
     transition: transform .25s, opacity .2s;
     opacity: 0;
-    width: 290px !important;
-    min-width: 290px !important;
+    width: 310px !important;
+    min-width: 310px !important;
   }
   .panel.mobile-open {
     transform: translateX(0);
@@ -363,8 +363,8 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
     transform: translateX(-100%);
     opacity: 0;
     pointer-events: none;
-    width: 290px !important;
-    min-width: 290px !important;
+    width: 310px !important;
+    min-width: 310px !important;
     border-right: 2px solid var(--border);
   }
   /* overlay when panel open */
@@ -398,11 +398,26 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
 <body>
 
 <div class="topbar">
-  <div class="topbar-title">🏠 香港物業 傳單編輯器</div>
+  <a class="btn-panel-tog" href="dashboard.html" style="text-decoration:none; display:inline-flex; align-items:center;" title="返回Dashboard">← Dashboard</a>
   <button class="btn-panel-tog" onclick="togglePanel()">☰ 面板</button>
+  <div class="topbar-title">🏠 傳單編輯器　<span id="curTitle" style="opacity:.8; font-weight:400;">未命名</span></div>
+  <button class="btn-panel-tog" onclick="openMyFlyers()">📂 我的傳單</button>
+  <button class="btn-panel-tog" onclick="newFlyer()">＋ 新增</button>
   <button class="tbtn on" id="tabSaleBtn" onclick="switchTab('sale')">售盤</button>
   <button class="tbtn" id="tabRentBtn" onclick="switchTab('rent')">租盤</button>
+  <button class="btn-print" id="saveBtn" onclick="saveFlyer()">💾 儲存</button>
   <button class="btn-print" onclick="window.print()">🖨 列印/PDF</button>
+</div>
+
+<!-- 我的傳單 modal -->
+<div id="myFlyersModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; width:min(480px, 92vw); max-height:80vh; overflow:auto; padding:18px 20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="font-size:15px; color:var(--ui-accent);">我的傳單</h3>
+      <button onclick="closeMyFlyers()" style="border:none; background:none; font-size:18px; cursor:pointer; color:#999;">✕</button>
+    </div>
+    <div id="myFlyersList" style="font-size:13px; color:#666;">載入緊…</div>
+  </div>
 </div>
 
 <!-- Mobile panel overlay -->
@@ -590,7 +605,19 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
 <div class="preview-wrap" id="previewWrap"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+const SUPABASE_URL = "https://berctchwlzjskjcjzani.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable__Nvdq0ZufT37BRdJ1F_TyA_IqkYnqj1";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentFlyerId = null; // null = 未儲存過嘅新傳單
+
+(async function authGuard(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session){ window.location.href = "index.html"; }
+})();
+
 let tab = 'sale';
 let panelOpen = true;
 let isMobile = window.innerWidth <= 900;
@@ -1105,6 +1132,126 @@ window.addEventListener('resize', () => {
 document.querySelectorAll('input[type=text],input[type=tel],textarea').forEach(el => {
   if (!el.oninput) el.addEventListener('input', rr);
 });
+
+// ===== 儲存 / 載入（Supabase） =====
+const TEXT_FIELD_IDS = [
+  'f_coname','f_coen','f_branch','f_date','f_invite','f_addr','f_tel','f_phone','f_footright',
+  'f_sbar','sf_zh','sf_en','sf_sn','sf_sg','sf_bullets','sf_market','sf_price','sf_rent','sf_id','f_smore','f_rbar'
+];
+const COLOR_FIELD_IDS = ['c_accent','c_secbg','c_sectxt','c_cardborder','c_cardbg','c_saleprice','c_rentprice'];
+const RANGE_FIELDS = [
+  { id:'sl_hdr', prop:'--hdr-h', suffix:'px', label:'hdr_v' },
+  { id:'sl_qr', prop:'--qr-size', suffix:'px', label:'qr_v' },
+  { id:'sl_phone', prop:'--footer-phone-size', suffix:'rem', label:'phone_v' },
+  { id:'sl_pid', prop:'--propid-opacity', suffix:'', label:'pid_v', fmt:x=>Math.round(x*100)+'%' }
+];
+
+function collectState(){
+  const s = { tab, logoUrl, qrUrl, saleProps, rentFeatProps, rentProps, text:{}, color:{}, range:{}, serif:g('chk_serif').checked };
+  TEXT_FIELD_IDS.forEach(id => s.text[id] = v(id));
+  COLOR_FIELD_IDS.forEach(id => s.color[id] = v(id));
+  RANGE_FIELDS.forEach(r => s.range[r.id] = v(r.id));
+  return s;
+}
+
+function applyState(s){
+  tab = s.tab || 'sale';
+  logoUrl = s.logoUrl || null;
+  qrUrl = s.qrUrl || null;
+  saleProps = s.saleProps || [];
+  rentFeatProps = s.rentFeatProps || [];
+  rentProps = s.rentProps || [];
+  selSale = selRent = selRFeat = -1;
+  g('saleEditForm').classList.remove('open');
+  g('rentEditForm').classList.remove('open');
+  g('rfeatEditForm').classList.remove('open');
+
+  TEXT_FIELD_IDS.forEach(id => { if (s.text && s.text[id] !== undefined) g(id).value = s.text[id]; });
+  COLOR_FIELD_IDS.forEach(id => { if (s.color && s.color[id] !== undefined) g(id).value = s.color[id]; });
+  RANGE_FIELDS.forEach(r => {
+    const val = (s.range && s.range[r.id] !== undefined) ? s.range[r.id] : g(r.id).value;
+    g(r.id).value = val;
+    setV(r.prop, val + r.suffix, r.label, r.fmt);
+  });
+  COLOR_FIELD_IDS.forEach(id => {
+    const propMap = { c_accent:'--accent', c_secbg:'--section-bg', c_sectxt:'--section-text',
+      c_cardborder:'--card-border', c_cardbg:'--card-bg', c_saleprice:'--price-color', c_rentprice:'--rent-price-color' };
+    document.documentElement.style.setProperty(propMap[id], v(id));
+  });
+  g('chk_serif').checked = !!s.serif;
+  toggleFont(!!s.serif);
+
+  g('tabSaleBtn').className = 'tbtn' + (tab === 'sale' ? ' on' : '');
+  g('tabRentBtn').className = 'tbtn' + (tab === 'rent' ? ' on' : '');
+  render();
+}
+
+async function saveFlyer(){
+  const btn = g('saveBtn');
+  let title = g('curTitle').dataset.title || '';
+  if (!title){
+    title = prompt('幫呢張傳單改個名（方便之後喺「我的傳單」度搵返）：', tab === 'sale' ? '新售盤傳單' : '新租盤傳單');
+    if (title === null) return; // 用戶取消
+    if (!title.trim()) title = '未命名傳單';
+  }
+  btn.disabled = true; btn.textContent = '儲存緊…';
+  const payload = { title, tab, data: collectState() };
+  let res;
+  if (currentFlyerId) res = await sb.from('flyers').update(payload).eq('id', currentFlyerId).select().single();
+  else res = await sb.from('flyers').insert(payload).select().single();
+  btn.disabled = false; btn.textContent = '💾 儲存';
+  if (res.error){ alert('儲存失敗：' + res.error.message); return; }
+  currentFlyerId = res.data.id;
+  g('curTitle').textContent = title;
+  g('curTitle').dataset.title = title;
+  setStatus('已儲存 ✓', 'ok');
+}
+
+function newFlyer(){
+  if (!confirm('開新傳單？未儲存嘅改動會冧走。')) return;
+  currentFlyerId = null;
+  g('curTitle').textContent = '未命名';
+  g('curTitle').dataset.title = '';
+  location.reload();
+}
+
+async function openMyFlyers(){
+  g('myFlyersModal').style.display = 'flex';
+  const box = g('myFlyersList');
+  box.textContent = '載入緊…';
+  const { data, error } = await sb.from('flyers').select('id, title, tab, updated_at').order('updated_at', { ascending:false });
+  if (error){ box.textContent = '讀取失敗：' + error.message; return; }
+  if (!data || !data.length){ box.textContent = '仲未有儲存過任何傳單。'; return; }
+  box.innerHTML = data.map(f => `
+    <div style="display:flex; align-items:center; gap:8px; padding:9px 4px; border-bottom:1px solid #eee;">
+      <div style="flex:1; cursor:pointer;" onclick="loadFlyer(${f.id})">
+        <div style="font-weight:700; color:#222; font-size:13.5px;">${(f.title||'未命名').replace(/</g,'&lt;')}</div>
+        <div style="font-size:11.5px; color:#999;">${f.tab === 'rent' ? '租盤' : '售盤'} · ${new Date(f.updated_at).toLocaleString('zh-HK')}</div>
+      </div>
+      <button onclick="deleteFlyer(${f.id}, event)" style="border:none; background:none; color:#c0212a; cursor:pointer; font-size:13px;">刪除</button>
+    </div>`).join('');
+}
+function closeMyFlyers(){ g('myFlyersModal').style.display = 'none'; }
+
+async function loadFlyer(id){
+  const { data, error } = await sb.from('flyers').select('*').eq('id', id).single();
+  if (error){ alert('載入失敗：' + error.message); return; }
+  currentFlyerId = data.id;
+  g('curTitle').textContent = data.title || '未命名';
+  g('curTitle').dataset.title = data.title || '';
+  applyState(data.data || {});
+  closeMyFlyers();
+  setStatus('已載入 ✓', 'ok');
+}
+
+async function deleteFlyer(id, e){
+  e.stopPropagation();
+  if (!confirm('確定刪除呢張傳單？')) return;
+  const { error } = await sb.from('flyers').delete().eq('id', id);
+  if (error){ alert('刪除失敗：' + error.message); return; }
+  if (currentFlyerId === id){ currentFlyerId = null; g('curTitle').textContent = '未命名'; g('curTitle').dataset.title = ''; }
+  openMyFlyers();
+}
 
 render();
 </script>
