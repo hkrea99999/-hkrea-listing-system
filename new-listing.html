@@ -176,39 +176,6 @@
         </div>
 
         <div class="card">
-          <h2>第 4 條 / 附表 2　佣金</h2>
-          <label class="fl">佣金支付時點</label>
-          <div class="choice">
-            <label><input type="radio" name="commission_timing" value="簽署買賣協議時" onchange="renderPreview()"> 簽署買賣協議時</label>
-            <label><input type="radio" name="commission_timing" value="物業交易完成時" onchange="renderPreview()"> 交易完成時</label>
-          </div>
-          <div class="grid2">
-            <div>
-              <label class="fl">一筆數額 $</label>
-              <input type="text" id="commission_amount" placeholder="好多時候留空，喺文件度只係一條線" oninput="renderPreview()">
-              <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
-                <input type="checkbox" id="commission_amount_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
-              </label>
-            </div>
-            <div>
-              <label class="fl">或 成交價的 %（一般都係 1%）</label>
-              <input type="text" id="commission_pct" placeholder="例如 1" oninput="renderPreview()">
-              <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
-                <input type="checkbox" id="commission_pct_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
-              </label>
-            </div>
-          </div>
-          <label class="fl">附表2第2條　如交易未能完成，退款是否連同利息</label>
-          <div class="choice">
-            <label><input type="radio" name="commission_interest" value="連同利息" onchange="renderPreview()"> 連同利息</label>
-            <label><input type="radio" name="commission_interest" value="不連同利息" onchange="renderPreview()"> 不連同利息</label>
-          </div>
-          <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:4px 0 0;">
-            <input type="checkbox" id="commission_interest_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
-          </label>
-        </div>
-
-        <div class="card">
           <h2>第 6–9 條　視察 / 分銷 / 廣告 / 權益</h2>
           <label class="fl">6(a) 賣方同意容許代理/買方查看物業</label>
           <div class="choice">
@@ -265,6 +232,39 @@
           <textarea id="extra_terms" placeholder="如有額外條款請喺此填寫，冇就留白" oninput="renderPreview()"></textarea>
           <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
             <input type="checkbox" id="extra_terms_na" style="width:auto;margin:0;" onchange="renderPreview()"> 冇額外條款，喺文件劃線
+          </label>
+        </div>
+
+        <div class="card">
+          <h2>第 4 條 / 附表 2　佣金</h2>
+          <label class="fl">佣金支付時點</label>
+          <div class="choice">
+            <label><input type="radio" name="commission_timing" value="簽署買賣協議時" onchange="renderPreview()"> 簽署買賣協議時</label>
+            <label><input type="radio" name="commission_timing" value="物業交易完成時" onchange="renderPreview()"> 交易完成時</label>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="fl">一筆數額 $</label>
+              <input type="text" id="commission_amount" placeholder="好多時候留空，喺文件度只係一條線" oninput="renderPreview()">
+              <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
+                <input type="checkbox" id="commission_amount_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
+              </label>
+            </div>
+            <div>
+              <label class="fl">或 成交價的 %（一般都係 1%）</label>
+              <input type="text" id="commission_pct" placeholder="例如 1" oninput="renderPreview()">
+              <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
+                <input type="checkbox" id="commission_pct_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
+              </label>
+            </div>
+          </div>
+          <label class="fl">附表2第2條　如交易未能完成，退款是否連同利息</label>
+          <div class="choice">
+            <label><input type="radio" name="commission_interest" value="連同利息" onchange="renderPreview()"> 連同利息</label>
+            <label><input type="radio" name="commission_interest" value="不連同利息" onchange="renderPreview()"> 不連同利息</label>
+          </div>
+          <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:4px 0 0;">
+            <input type="checkbox" id="commission_interest_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
           </label>
         </div>
 
