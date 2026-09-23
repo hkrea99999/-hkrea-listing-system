@@ -483,7 +483,7 @@
     a.href = url; a.download = record.serial_no + '.pdf'; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     try{ const up = await uploadPdf(blob, record.serial_no);
-         await sb.from('listings').update({ signed_pdf_url: up }).eq('sign_token', token); }catch(e){}
+         await sb.rpc('update_pdf_url_by_token', { p_token: token, p_signed_pdf_url: up }); }catch(e){}
   }
 
   /* ---------- 已簽署但PDF 404：重新生成 ---------- */
@@ -509,7 +509,7 @@
       const blob = await makePdfBlob(docData);
       try{
         const url = await uploadPdf(blob, record.serial_no);
-        await sb.from('listings').update({ signed_pdf_url: url }).eq('sign_token', token);
+        await sb.rpc('update_pdf_url_by_token', { p_token: token, p_signed_pdf_url: url });
         const link = document.getElementById('downloadLink');
         link.href = url; link.style.display = 'inline-block'; link.setAttribute('target','_blank');
         w.textContent = 'PDF已重新生成並上載。';
