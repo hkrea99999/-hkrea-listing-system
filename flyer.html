@@ -38,6 +38,13 @@
   --qr-size:70px;
   --propid-opacity:0.5;
 
+  /* Header brand vars */
+  --seal-size:64px;
+  --company-name-size:2rem;
+  --company-en-size:1.1rem;
+  --subtitle-size:0.85rem;
+  --refno-size:1rem;
+
   /* A4 dimensions */
   --a4-w:794px;
   --a4-h:1122px;
@@ -89,6 +96,7 @@ html, body {
 .ps{padding:12px 12px 14px;border-bottom:1px solid #eee;}
 .ps h3{font-size:.68rem;color:#8a8a8a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;font-weight:700;}
 label{display:block;font-size:.74rem;color:#444;font-weight:600;margin-bottom:3px;margin-top:9px;}
+.hint{font-size:.65rem;color:#999;margin-top:2px;line-height:1.4;}
 input[type=text],input[type=tel],textarea,select{
   width:100%;border:1px solid var(--ui-line);border-radius:var(--ui-radius);padding:8px 10px;background:var(--ui-field);
   font-family:inherit;font-size:.8rem;color:#111;transition:border .15s;line-height:1.4;
@@ -111,6 +119,10 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
 .ubtn{width:100%;margin-top:5px;background:var(--ui-accent);color:#fff;border:none;padding:7px;border-radius:var(--ui-radius);
   cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:700;}
 .ubtn:hover{background:#6e1414;}
+.ubtn.ghost{background:#fff;color:var(--ui-accent);border:1.5px solid var(--ui-accent);}
+.ubtn.ghost:hover{background:#fdf2f2;}
+.ubtn-row{display:flex;gap:6px;}
+.ubtn-row .ubtn{margin-top:5px;flex:1;}
 
 /* prop list */
 .pi{display:flex;align-items:center;gap:5px;padding:6px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .1s;}
@@ -150,6 +162,17 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
   align-items:center;
   background:#c0bbb4;
 }
+.zoom-bar{
+  width:var(--a4-w);
+  max-width:100%;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  margin-bottom:10px;background:#fff;border-radius:8px;padding:6px 10px;
+  box-shadow:0 2px 10px rgba(0,0,0,.15);
+}
+.zoom-bar span{font-size:.68rem;color:#666;font-weight:700;min-width:46px;text-align:center;}
+.zoom-btn{background:var(--ui-accent);color:#fff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:.9rem;line-height:1;}
+.zoom-btn:hover{background:#6e1414;}
+.zoom-reset{background:none;border:1px solid var(--ui-line);color:#666;padding:3px 9px;border-radius:var(--ui-radius);cursor:pointer;font-size:.65rem;}
 
 /* ===== FLYER SCALE CONTAINER (mobile zoom) ===== */
 .flyer-scale-wrap {
@@ -170,7 +193,7 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
 /* Header / Logo zone — full bleed, no side margins */
 .f-header{
   width:100%;
-  height:var(--hdr-h);
+  min-height:var(--hdr-h);
   overflow:hidden;
   position:relative;
   border-bottom:3px solid var(--accent);
@@ -178,28 +201,41 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
   align-items:stretch;
   /* NO margin, NO padding on the outer element */
 }
-.f-header-left{
-  flex:1;
+.f-header-inner{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:16px;
   padding:12px 20px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
 }
-.f-logo-img{max-height:100%;max-width:100%;object-fit:contain;display:block;}
-.f-logo-placeholder .company-name{font-size:2rem;font-weight:900;color:var(--navy);letter-spacing:.04em;font-family:'Noto Serif TC',serif;}
-.f-logo-placeholder .company-name span{font-size:1.1rem;font-weight:400;color:#555;margin-left:10px;font-family:'Noto Sans TC',sans-serif;}
-.f-logo-placeholder .company-sub{font-size:.7rem;color:#888;margin-top:4px;}
-.f-header-right{
-  padding:10px 20px;
-  text-align:right;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:flex-end;
-  min-width:140px;
-  flex-shrink:0;
+
+/* Seal / stamp emblem */
+.f-seal{
+  width:var(--seal-size);height:var(--seal-size);flex-shrink:0;
+  border:2px solid var(--red);border-radius:4px;overflow:hidden;
+  background:#fff;display:flex;align-items:center;justify-content:center;
 }
-.f-branch{font-size:.75rem;font-weight:700;color:var(--navy);}
+.f-seal img{width:100%;height:100%;object-fit:contain;}
+
+/* Brand block (used when no full logo image uploaded) */
+.f-brand{display:flex;flex-direction:column;justify-content:center;flex-shrink:0;}
+.f-brand-zh{font-family:'Noto Serif TC',serif;font-weight:900;font-size:var(--company-name-size);color:var(--navy);letter-spacing:.03em;line-height:1.08;}
+.f-brand-en{font-size:var(--company-en-size);color:#555;letter-spacing:.06em;margin-top:2px;}
+.f-license{font-size:.62rem;color:#888;margin-top:4px;line-height:1.4;}
+
+/* Full logo image (replaces brand block entirely) */
+.f-logo-img{max-height:calc(var(--hdr-h) - 24px);max-width:260px;object-fit:contain;display:block;flex-shrink:0;}
+
+/* Middle subtitle */
+.f-subtitle{flex:1;text-align:center;font-size:var(--subtitle-size);color:#333;font-weight:600;padding:0 12px;line-height:1.4;}
+
+/* Right reference box (branch / flyer no.) */
+.f-refbox{
+  border:1.5px solid var(--navy);border-radius:3px;
+  padding:6px 16px;text-align:center;flex-shrink:0;min-width:110px;
+}
+.f-refbox-label{font-weight:900;font-size:var(--refno-size);color:var(--navy);letter-spacing:.04em;white-space:nowrap;}
+.f-refbox-no{font-weight:900;font-size:calc(var(--refno-size) * 0.82);color:var(--red);margin-top:3px;white-space:nowrap;}
 
 /* Section header bar */
 .f-section-bar{
@@ -310,7 +346,7 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
     background: #fff !important;
     width: 210mm;
   }
-  .topbar, .panel { display:none !important; }
+  .topbar, .panel, .zoom-bar { display:none !important; }
   .workspace {
     display: block;
     height: auto;
@@ -437,9 +473,15 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
         <label>公司名稱（大字）</label>
         <input type="text" id="f_coname" value="香港物業" oninput="rr()">
         <label>英文名稱</label>
-        <input type="text" id="f_coen" value="HONG KONG REAL ESTATE" oninput="rr()">
-        <label>分行名稱</label>
+        <input type="text" id="f_coen" value="HONG KONG REAL ESTATE AGENCY" oninput="rr()">
+        <label>牌照 / 地址細字（logo下面）</label>
+        <input type="text" id="f_license" value="地產代理牌照號碼: C-009244" oninput="rr()">
+        <label>分行名稱（右側方框上行）</label>
         <input type="text" id="f_branch" value="銅鑼灣分行" oninput="rr()">
+        <label>傳單編號（右側方框下行，紅字）</label>
+        <input type="text" id="f_flyerno" value="No.2026-0001" oninput="rr()">
+        <label>Header 中間副標題</label>
+        <input type="text" id="f_subtitle" value="出售香港住宅物業 · 皇牌盤源大搜羅" oninput="rr()">
         <label>廣告日期</label>
         <input type="text" id="f_date" value="今日焦點推介" oninput="rr()">
       </div>
@@ -457,10 +499,21 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
         <textarea id="f_footright" rows="3">致電查詢</textarea>
       </div>
       <div class="ps">
-        <h3>Logo 圖片</h3>
-        <button class="ubtn" onclick="document.getElementById('logoFile').click()">📷 上載 Logo</button>
+        <h3>品牌識別（印章 + Logo）</h3>
+        <label>印章 / 標誌小圖（方形，可選）</label>
+        <button class="ubtn ghost" onclick="document.getElementById('sealFile').click()">🔴 上載印章圖</button>
+        <input type="file" id="sealFile" accept="image/*" onchange="handleSeal(event)">
+        <div class="ubtn-row" id="sealClearRow" style="display:none">
+          <button class="ubtn ghost" onclick="clearSeal()">✕ 移除印章圖</button>
+        </div>
+        <label style="margin-top:10px">完整 Logo 圖（上載後會取代「公司名稱」文字）</label>
+        <button class="ubtn" onclick="document.getElementById('logoFile').click()">📷 上載完整 Logo</button>
         <input type="file" id="logoFile" accept="image/*" onchange="handleLogo(event)">
-        <label style="margin-top:6px">Header 高度</label>
+        <div class="ubtn-row" id="logoClearRow" style="display:none">
+          <button class="ubtn ghost" onclick="clearLogo()">✕ 移除 Logo 圖，改用文字</button>
+        </div>
+        <div class="hint">💡 唔上載完整Logo嘅話，會用「公司名稱 + 英文名稱 + 牌照細字」自動砌返個文字版Logo，配合左邊印章圖，睇落好似表格3個header咁。</div>
+        <label style="margin-top:10px">Header 高度</label>
         <div class="sr"><input type="range" id="sl_hdr" min="70" max="250" value="110" oninput="setV('--hdr-h',this.value+'px','hdr_v')"><span class="sv" id="hdr_v">110px</span></div>
       </div>
       <div class="ps">
@@ -483,7 +536,17 @@ input[type=color]{width:32px;height:24px;padding:1px 2px;border:1px solid var(--
         <div class="xr"><input type="checkbox" id="chk_serif" onchange="toggleFont(this.checked)"><label for="chk_serif">明體（Noto Serif TC）</label></div>
       </div>
       <div class="ps">
-        <h3>大細微調</h3>
+        <h3>大細微調（隨時放大縮小）</h3>
+        <label>公司名稱字體</label>
+        <div class="sr"><input type="range" id="sl_coname" min="1.2" max="3.2" step="0.1" value="2" oninput="setV('--company-name-size',this.value+'rem','coname_v')"><span class="sv" id="coname_v">2rem</span></div>
+        <label>英文名稱字體</label>
+        <div class="sr"><input type="range" id="sl_coen" min="0.7" max="1.8" step="0.1" value="1.1" oninput="setV('--company-en-size',this.value+'rem','coen_v')"><span class="sv" id="coen_v">1.1rem</span></div>
+        <label>印章大細</label>
+        <div class="sr"><input type="range" id="sl_seal" min="36" max="140" value="64" oninput="setV('--seal-size',this.value+'px','seal_v')"><span class="sv" id="seal_v">64px</span></div>
+        <label>副標題字體</label>
+        <div class="sr"><input type="range" id="sl_subtitle" min="0.6" max="1.6" step="0.05" value="0.85" oninput="setV('--subtitle-size',this.value+'rem','subtitle_v')"><span class="sv" id="subtitle_v">0.85rem</span></div>
+        <label>右側方框字體</label>
+        <div class="sr"><input type="range" id="sl_refno" min="0.7" max="1.8" step="0.05" value="1" oninput="setV('--refno-size',this.value+'rem','refno_v')"><span class="sv" id="refno_v">1rem</span></div>
         <label>底部電話大細</label>
         <div class="sr"><input type="range" id="sl_phone" min="1.5" max="4" step="0.1" value="2.6" oninput="setV('--footer-phone-size',this.value+'rem','phone_v')"><span class="sv" id="phone_v">2.6rem</span></div>
         <label>物業編號透明度</label>
@@ -622,7 +685,8 @@ let tab = 'sale';
 let panelOpen = true;
 let isMobile = window.innerWidth <= 900;
 let selSale = -1, selRent = -1, selRFeat = -1;
-let logoUrl = null, qrUrl = null;
+let logoUrl = null, qrUrl = null, sealUrl = null;
+let zoomPct = 100; // manual zoom override, null-ish 100 = auto-fit
 
 const g = id => document.getElementById(id);
 const v = id => g(id).value;
@@ -675,41 +739,58 @@ function tog(name) {
 
 function handleLogo(e) {
   const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader(); r.onload = ev => { logoUrl = ev.target.result; render(); }; r.readAsDataURL(f);
+  const r = new FileReader(); r.onload = ev => { logoUrl = ev.target.result; g('logoClearRow').style.display='flex'; render(); }; r.readAsDataURL(f);
 }
+function clearLogo(){ logoUrl = null; g('logoClearRow').style.display='none'; render(); }
 function handleQR(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader(); r.onload = ev => { qrUrl = ev.target.result; render(); }; r.readAsDataURL(f);
 }
+function handleSeal(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = ev => { sealUrl = ev.target.result; g('sealClearRow').style.display='flex'; render(); }; r.readAsDataURL(f);
+}
+function clearSeal(){ sealUrl = null; g('sealClearRow').style.display='none'; render(); }
 function toggleFont(serif) {
   setV('--body-font', serif ? "'Noto Serif TC', serif" : "'Noto Sans TC', sans-serif");
   render();
 }
 
-// ===== SCALE FLYER TO FIT =====
+// ===== SCALE FLYER TO FIT (auto-fit, or manual zoom override) =====
 function applyScale() {
   const wrap = g('previewWrap');
   const scaleEl = wrap.querySelector('.flyer-scale-wrap');
   if (!scaleEl) return;
 
   const a4W = 794; // px
-  // available width = preview wrap width minus padding
-  const availW = wrap.clientWidth - 32; // 16px padding each side
-  if (availW < a4W) {
-    const scale = availW / a4W;
-    scaleEl.style.transform = `scale(${scale})`;
-    scaleEl.style.marginBottom = `${-(a4W * (1 - scale) * 0.5)}px`; // rough height correction
-    // set outer container height so it doesn't overlap
-    const flyer = scaleEl.querySelector('.flyer');
-    if (flyer) {
-      const scaledH = flyer.offsetHeight * scale;
-      scaleEl.style.height = scaledH + 'px';
-    }
+  let scale;
+  if (zoomPct !== 100) {
+    scale = zoomPct / 100;
   } else {
-    scaleEl.style.transform = '';
-    scaleEl.style.marginBottom = '20px';
-    scaleEl.style.height = '';
+    const availW = wrap.clientWidth - 32; // 16px padding each side
+    scale = availW < a4W ? availW / a4W : 1;
   }
+  scaleEl.style.transform = scale !== 1 ? `scale(${scale})` : '';
+  const flyer = scaleEl.querySelector('.flyer');
+  if (flyer && scale !== 1) {
+    const scaledH = flyer.offsetHeight * scale;
+    scaleEl.style.height = scaledH + 'px';
+    scaleEl.style.marginBottom = '20px';
+  } else if (flyer) {
+    scaleEl.style.height = '';
+    scaleEl.style.marginBottom = '20px';
+  }
+}
+
+function zoomBy(delta) {
+  zoomPct = Math.max(40, Math.min(200, zoomPct + delta));
+  g('zoomLabel').textContent = zoomPct + '%';
+  applyScale();
+}
+function zoomReset() {
+  zoomPct = 100;
+  g('zoomLabel').textContent = '自動';
+  applyScale();
 }
 
 // ---- DATA ----
@@ -894,39 +975,71 @@ function buildRentFlyer() {
   return flyer;
 }
 
-// ---- BUILD HEADER (full bleed, no license) ----
+// ---- BUILD HEADER (seal + brand/logo + subtitle + reference box) ----
 function buildHeader() {
   const hdr = document.createElement('div');
   hdr.className = 'f-header';
 
-  const left = document.createElement('div');
-  left.className = 'f-header-left';
+  const inner = document.createElement('div');
+  inner.className = 'f-header-inner';
 
+  // 1) Seal / stamp emblem (optional, independent of logo)
+  if (sealUrl) {
+    const seal = document.createElement('div');
+    seal.className = 'f-seal';
+    const simg = document.createElement('img');
+    simg.src = sealUrl;
+    seal.appendChild(simg);
+    inner.appendChild(seal);
+  }
+
+  // 2) Brand: full logo image OR text-built brand block
   if (logoUrl) {
     const img = document.createElement('img');
     img.className = 'f-logo-img';
     img.src = logoUrl;
-    left.appendChild(img);
+    inner.appendChild(img);
   } else {
-    const ph = document.createElement('div');
-    ph.className = 'f-logo-placeholder';
-    const cn = document.createElement('div');
-    cn.className = 'company-name';
-    cn.innerHTML = `${v('f_coname')} <span>${v('f_coen')}</span>`;
-    ph.appendChild(cn);
-    left.appendChild(ph);
+    const brand = document.createElement('div');
+    brand.className = 'f-brand';
+    const zh = document.createElement('div');
+    zh.className = 'f-brand-zh'; zh.contentEditable = true;
+    zh.textContent = v('f_coname');
+    zh.oninput = e => g('f_coname').value = e.target.textContent;
+    const en = document.createElement('div');
+    en.className = 'f-brand-en'; en.contentEditable = true;
+    en.textContent = v('f_coen');
+    en.oninput = e => g('f_coen').value = e.target.textContent;
+    const lic = document.createElement('div');
+    lic.className = 'f-license'; lic.contentEditable = true;
+    lic.textContent = v('f_license');
+    lic.oninput = e => g('f_license').value = e.target.textContent;
+    brand.appendChild(zh); brand.appendChild(en); brand.appendChild(lic);
+    inner.appendChild(brand);
   }
 
-  const right = document.createElement('div');
-  right.className = 'f-header-right';
-  const br = document.createElement('div');
-  br.className = 'f-branch'; br.contentEditable = true;
-  br.textContent = v('f_branch');
-  br.oninput = e => g('f_branch').value = e.target.textContent;
-  // 牌照行已移除
-  right.appendChild(br);
+  // 3) Middle subtitle
+  const sub = document.createElement('div');
+  sub.className = 'f-subtitle'; sub.contentEditable = true;
+  sub.textContent = v('f_subtitle');
+  sub.oninput = e => g('f_subtitle').value = e.target.textContent;
+  inner.appendChild(sub);
 
-  hdr.appendChild(left); hdr.appendChild(right);
+  // 4) Right reference box (branch + flyer no.)
+  const box = document.createElement('div');
+  box.className = 'f-refbox';
+  const label = document.createElement('div');
+  label.className = 'f-refbox-label'; label.contentEditable = true;
+  label.textContent = v('f_branch');
+  label.oninput = e => g('f_branch').value = e.target.textContent;
+  const no = document.createElement('div');
+  no.className = 'f-refbox-no'; no.contentEditable = true;
+  no.textContent = v('f_flyerno');
+  no.oninput = e => g('f_flyerno').value = e.target.textContent;
+  box.appendChild(label); box.appendChild(no);
+  inner.appendChild(box);
+
+  hdr.appendChild(inner);
   return hdr;
 }
 
@@ -1113,6 +1226,17 @@ function render() {
   renderList(rentProps, 'rentList', 'rent');
   const wrap = g('previewWrap');
   wrap.innerHTML = '';
+
+  // zoom control bar (kept above the flyer, hidden on print via CSS)
+  const zbar = document.createElement('div');
+  zbar.className = 'zoom-bar';
+  zbar.innerHTML = `
+    <button class="zoom-btn" onclick="zoomBy(-10)" title="縮小">－</button>
+    <span id="zoomLabel">${zoomPct === 100 ? '自動' : zoomPct + '%'}</span>
+    <button class="zoom-btn" onclick="zoomBy(10)" title="放大">＋</button>
+    <button class="zoom-reset" onclick="zoomReset()">重設</button>`;
+  wrap.appendChild(zbar);
+
   // wrap in scale container
   const scaleWrap = document.createElement('div');
   scaleWrap.className = 'flyer-scale-wrap';
@@ -1135,19 +1259,24 @@ document.querySelectorAll('input[type=text],input[type=tel],textarea').forEach(e
 
 // ===== 儲存 / 載入（Supabase） =====
 const TEXT_FIELD_IDS = [
-  'f_coname','f_coen','f_branch','f_date','f_invite','f_addr','f_tel','f_phone','f_footright',
+  'f_coname','f_coen','f_license','f_branch','f_flyerno','f_subtitle','f_date','f_invite','f_addr','f_tel','f_phone','f_footright',
   'f_sbar','sf_zh','sf_en','sf_sn','sf_sg','sf_bullets','sf_market','sf_price','sf_rent','sf_id','f_smore','f_rbar'
 ];
 const COLOR_FIELD_IDS = ['c_accent','c_secbg','c_sectxt','c_cardborder','c_cardbg','c_saleprice','c_rentprice'];
 const RANGE_FIELDS = [
   { id:'sl_hdr', prop:'--hdr-h', suffix:'px', label:'hdr_v' },
   { id:'sl_qr', prop:'--qr-size', suffix:'px', label:'qr_v' },
+  { id:'sl_coname', prop:'--company-name-size', suffix:'rem', label:'coname_v' },
+  { id:'sl_coen', prop:'--company-en-size', suffix:'rem', label:'coen_v' },
+  { id:'sl_seal', prop:'--seal-size', suffix:'px', label:'seal_v' },
+  { id:'sl_subtitle', prop:'--subtitle-size', suffix:'rem', label:'subtitle_v' },
+  { id:'sl_refno', prop:'--refno-size', suffix:'rem', label:'refno_v' },
   { id:'sl_phone', prop:'--footer-phone-size', suffix:'rem', label:'phone_v' },
   { id:'sl_pid', prop:'--propid-opacity', suffix:'', label:'pid_v', fmt:x=>Math.round(x*100)+'%' }
 ];
 
 function collectState(){
-  const s = { tab, logoUrl, qrUrl, saleProps, rentFeatProps, rentProps, text:{}, color:{}, range:{}, serif:g('chk_serif').checked };
+  const s = { tab, logoUrl, qrUrl, sealUrl, saleProps, rentFeatProps, rentProps, text:{}, color:{}, range:{}, serif:g('chk_serif').checked };
   TEXT_FIELD_IDS.forEach(id => s.text[id] = v(id));
   COLOR_FIELD_IDS.forEach(id => s.color[id] = v(id));
   RANGE_FIELDS.forEach(r => s.range[r.id] = v(r.id));
@@ -1158,6 +1287,9 @@ function applyState(s){
   tab = s.tab || 'sale';
   logoUrl = s.logoUrl || null;
   qrUrl = s.qrUrl || null;
+  sealUrl = s.sealUrl || null;
+  g('logoClearRow').style.display = logoUrl ? 'flex' : 'none';
+  g('sealClearRow').style.display = sealUrl ? 'flex' : 'none';
   saleProps = s.saleProps || [];
   rentFeatProps = s.rentFeatProps || [];
   rentProps = s.rentProps || [];
