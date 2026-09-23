@@ -93,19 +93,22 @@
     if (!session){ window.location.href = "index.html"; return; }
     document.getElementById('who').textContent = session.user.email;
 
-    // 有啲舊資料庫未必有 updated_at 呢一欄，先試攞埋佢，攞唔到就退返用 created_at
-    let { data, error } = await sb
-      .from('listings')
-      .select('serial_no, property_address, seller_name, status, created_at, updated_at, sign_token, signed_pdf_url, signed_at, form_data')
-      .order('updated_at', { ascending: false, nullsFirst: false });
-    let hasUpdatedAt = true;
-    if (error){
-      hasUpdatedAt = false;
-      const res2 = await sb
-        .from('listings')
-        .select('serial_no, property_address, seller_name, status, created_at, sign_token, signed_pdf_url, signed_at, form_data')
-        .order('created_at', { ascending: false });
-      data = res2.data; error = res2.error;
+    // 有啲舊資料庫未必有 updated_at / first_viewed_at 呢啲欄，逐個試，攞唔到就自動退返冇嗰個
+    let optionalCols = ['updated_at', 'first_viewed_at'];
+    let data, error, hasUpdatedAt = true;
+    for (;;){
+      const cols = ['serial_no', 'property_address', 'seller_name', 'status', 'created_at',
+        'sign_token', 'signed_pdf_url', 'signed_at', 'form_data'].concat(optionalCols).join(', ');
+      const q = sb.from('listings').select(cols);
+      const res = optionalCols.includes('updated_at')
+        ? await q.order('updated_at', { ascending: false, nullsFirst: false })
+        : await q.order('created_at', { ascending: false });
+      data = res.data; error = res.error;
+      if (!error) break;
+      const missing = optionalCols.find(c => new RegExp(c, 'i').test(error.message || ''));
+      if (!missing) break;
+      optionalCols = optionalCols.filter(c => c !== missing);
+      if (missing === 'updated_at') hasUpdatedAt = false;
     }
     if (error){ alert('讀取紀錄失敗：' + error.message); return; }
     if (!hasUpdatedAt){
@@ -138,15 +141,34 @@
           <td class="row-actions">
             <a href="sign.html?token=${t}&view=1&staff=1">檢視</a>
             <a href="new-listing.html?serial=${encodeURIComponent(row.serial_no)}">編輯</a>
+            <a href="new-listing.html?duplicate=${encodeURIComponent(row.serial_no)}">複製</a>
             ${signed
               ? `<a class="mute" href="${row.signed_pdf_url || ('sign.html?token=' + t + '&view=1')}" target="_blank" rel="noopener">PDF</a>
                  <button class="mute" onclick="copyShareLink('${shareUrl}')">複製link</button>
                  <button class="mute" onclick="shareWhatsapp(${idx}, '${shareUrl.replace(/'/g, "\\'")}')">WhatsApp</button>
                  <button class="mute" onclick="emailPdf(${idx}, '${shareUrl.replace(/'/g, "\\'")}')">Email</button>`
               : `<a href="sign.html?token=${t}">簽署</a>`}
+            <button class="mute" onclick="deleteListing(${idx})">刪除</button>
           </td>
         </tr>`;
     }).join('');
+  }
+
+  // 刪除規則：
+  // - 未被打開過個link、仲係草稿 → 真刪，個流水號之後可以畀新symbol攞返用
+  // - 已經被開過link 或者 已送出/已簽署 → 都可以刪除（清走列表），但個流水號永久唔會再用
+  //   （因為個link/PDF可能已經流出咗，重用會令舊link顯示錯內容）
+  async function deleteListing(idx){
+    const row = (window.__rows || [])[idx];
+    if (!row) return;
+    const untouched = row.status === 'draft' && !row.first_viewed_at;
+    const warn = untouched
+      ? `確定刪除 ${HKREA.formatSerial(row.serial_no)}？呢個係未send過嘅草稿，刪除之後個流水號可以畀新記錄攞返用。`
+      : `確定刪除 ${HKREA.formatSerial(row.serial_no)}？呢個記錄可能已經send咗link俾人，刪除之後個流水號唔會再用喺第二張表度。`;
+    if (!confirm(warn)) return;
+    const { error } = await sb.from('listings').delete().eq('serial_no', row.serial_no);
+    if (error){ alert('刪除失敗：' + error.message); return; }
+    init();
   }
 
   function copyShareLink(url){
