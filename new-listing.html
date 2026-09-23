@@ -202,18 +202,6 @@
             <label><input type="radio" name="q_advertise" value="同意" onchange="renderPreview()"> 同意</label>
             <label><input type="radio" name="q_advertise" value="不同意" onchange="renderPreview()"> 不同意</label>
           </div>
-          <label class="fl">9(a) 代理一方對物業擁有金錢上或其他實益的權益</label>
-          <div class="choice">
-            <label><input type="radio" name="q_interest" value="有" onchange="renderPreview()"> 有</label>
-            <label><input type="radio" name="q_interest" value="沒有" onchange="renderPreview()"> 沒有</label>
-          </div>
-          <div id="interestWrap" style="display:none;">
-            <label class="fl">附表 3　權益詳情（揀「有」就必須填）</label>
-            <textarea id="interest_details" oninput="renderPreview()"></textarea>
-            <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
-              <input type="checkbox" id="interest_details_na" style="width:auto;margin:0;" onchange="renderPreview()"> 留空並喺文件劃線
-            </label>
-          </div>
         </div>
 
         <div class="card">
@@ -266,6 +254,22 @@
           <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:4px 0 0;">
             <input type="checkbox" id="commission_interest_na" style="width:auto;margin:0;" onchange="renderPreview()"> 呢欄唔適用，喺文件劃線
           </label>
+        </div>
+
+        <div class="card">
+          <h2>附表 3　權益</h2>
+          <label class="fl">9(a) 代理一方對物業擁有金錢上或其他實益的權益</label>
+          <div class="choice">
+            <label><input type="radio" name="q_interest" value="有" onchange="renderPreview()"> 有</label>
+            <label><input type="radio" name="q_interest" value="沒有" onchange="renderPreview()"> 沒有</label>
+          </div>
+          <div id="interestWrap" style="display:none;">
+            <label class="fl">附表 3　權益詳情（揀「有」就必須填）</label>
+            <textarea id="interest_details" oninput="renderPreview()"></textarea>
+            <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin:-8px 0 12px;">
+              <input type="checkbox" id="interest_details_na" style="width:auto;margin:0;" onchange="renderPreview()"> 留空並喺文件劃線
+            </label>
+          </div>
         </div>
 
         <div class="card">
@@ -366,6 +370,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const editingSerial = params.get('serial');
+  const duplicateSerial = params.get('duplicate');
   let isAdmin = false;
 
   const val = id => (document.getElementById(id).value || "").trim() || null;
@@ -698,6 +703,40 @@
         const warn = document.getElementById('errMsg');
         warn.className = 'msg warn'; warn.style.display = 'block';
         warn.textContent = '呢筆記錄賣方已經簽署咗。如果你而家修改並儲存，個狀態會變返做「已送出待簽」，之前嘅簽名同已簽PDF會被清除，需要賣方重新簽署。';
+      }
+    }
+    if (duplicateSerial){
+      document.getElementById('pageTitle').textContent = '新增放盤（複製自 ' + HKREA.formatSerial(duplicateSerial) + '）';
+      const { data, error } = await sb.from('listings').select('*').eq('serial_no', duplicateSerial).single();
+      if (error || !data){
+        document.getElementById('errMsg').textContent = '搵唔到要複製嘅記錄。';
+        document.getElementById('errMsg').style.display = 'block';
+      } else {
+        const fd = data.form_data || {};
+        sellersArr = (Array.isArray(fd.sellers) && fd.sellers.length) ? fd.sellers.slice()
+          : (data.seller_name ? data.seller_name.split(/[、,，]/).map(s => s.trim()).filter(Boolean) : [""]);
+        renderSellerList();
+        setVal('property_address', data.property_address);
+        setRadio('agency_type', data.agency_type);
+        // 生效日期唔抄舊嘅：好多時就係因為過咗期先要複製一份新，留返用戶自己填/用預設
+        setVal('asking_price', data.asking_price);
+        setRadio('rel_type', fd.rel_type);
+        setRadio('commission_timing', fd.commission_timing);
+        setVal('commission_amount', fd.commission_amount);
+        setChk('commission_amount_na', fd.commission_amount_na);
+        setVal('commission_pct', fd.commission_pct);
+        setChk('commission_pct_na', fd.commission_pct_na);
+        setRadio('commission_interest', fd.commission_interest);
+        setChk('commission_interest_na', fd.commission_interest_na);
+        ['q_viewing','q_key','q_key_other','q_distribute','q_advertise','q_interest','ack_option']
+          .forEach(k => setRadio(k, fd[k]));
+        ['interest_details','extra_terms','seller_id','seller_company','signer_name','signer_title',
+         'seller_br','seller_address','seller_phone','seller_fax','agent_signer']
+          .forEach(k => setVal(k, fd[k]));
+        setChk('interest_details_na', fd.interest_details_na);
+        setChk('extra_terms_na', fd.extra_terms_na);
+        if (fd.staff_id) document.getElementById('staff_id').value = fd.staff_id;
+        // 簽名/代理簽署日期特登唔copy：新開嘅係新一份協議，要代理重新簽先送得
       }
     }
     await loadStaff();
