@@ -133,7 +133,7 @@ window.HKREA = (function () {
   .paper .hd{ display:grid; grid-template-columns:318px 1fr auto; align-items:center; gap:12px; margin-bottom:4px; }
   .paper .hd .lh img{ width:318px; height:auto; display:block; }
   .paper .hd .mid{ text-align:center; font-size:13.5px; font-weight:700; letter-spacing:.3px; }
-  .paper .hd .rt{ text-align:right; }
+  .paper .hd .rt{ text-align:right; display:flex; flex-direction:column; align-items:flex-end; }
   .paper .formtag{
     display:inline-block; border:1px solid #333; border-radius:3px;
     padding:1px 9px; font-size:11px; font-weight:700;
